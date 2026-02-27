@@ -345,16 +345,9 @@ This project addresses **5 core deliverables** for the GST Reconciliation hackat
 |---|---|
 | **Karthikeya** | Full-Stack Developer & ML Engineer |
 
----
-
-## 📄 License
-
-This project was built for the **KLH University Hackathon 2025**.
 
 ---
 
 <div align="center">
-
-**Built with ❤️ using React, FastAPI, MongoDB Atlas, and Knowledge Graphs**
 
 </div>
