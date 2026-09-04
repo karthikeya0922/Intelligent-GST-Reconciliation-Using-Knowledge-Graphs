@@ -51,8 +51,9 @@ India's GST system requires businesses to reconcile invoices across multiple ret
 ## ✨ Key Features
 
 ### 1. Knowledge Graph Schema & Data Model
-- **Entity Types**: Vendor, Invoice, GSTR-1, GSTR-2B, e-Invoice, e-Way Bill
-- **Relationship Types**: `ISSUED_INVOICE`, `REPORTED_IN`, `HAS_E_INVOICE`, `HAS_E_WAY_BILL`
+- **Entity Types**: Taxpayer, Vendor, Invoice, GSTR-1, GSTR-2B, GSTR-3B, e-Invoice, e-Way Bill
+- **Relationship Types**: `ISSUED_INVOICE`, `REPORTED_IN`, `BILLED_TO`, `RECORDED_IN_PR`,
+  `FILED_RETURN`, `ELECTRONIC_VERSION`, `COVERS_SHIPMENT`
 - Interactive Force-Directed Graph visualization with layer toggles
 - Click-to-explore node details with risk scores and connections
 
@@ -70,10 +71,15 @@ India's GST system requires businesses to reconcile invoices across multiple ret
 - Full vendor compliance scorecard with risk bars
 
 ### 4. Explainable Audit Trails
-- AI-generated natural language explanations for each mismatch
-- Evidence-based reasoning: invoice details, filing status, vendor risk
-- Graph traversal path: `Your Entity → GSTR-2B → Invoice → Vendor`
-- Recommendations for ITC recovery actions
+- Generated for **every** flagged invoice from live graph facts (`GET /api/audit-trail/{id}`)
+- Each evidence line traces to a present or absent relationship, so the explanation
+  cannot drift from the data
+- Cites the applicable CGST provision — s.16(2)(aa) for an unreported invoice,
+  s.16(2)(c) where tax was never remitted, s.35(1) for an unbooked purchase
+- Findings are ranked by gravity, so the headline reports the most serious issue
+  rather than whichever label happened to be stored
+- Prints the traversal that produced it, including the second hop through the
+  supplier's GSTR-3B and the taxpayer's Purchase Register
 
 ### 5. Predictive Vendor Compliance Model
 - **Random Forest Classifier** (300 trees, depth 8) served from the API — held-out accuracy **76.8%**, ROC-AUC **0.853**, 5-fold CV **76.8%**
@@ -372,6 +378,30 @@ panel reports which engine ran (`neo4j-graph-traversal` or `mongodb-fallback`).
 
 ---
 
+## 🔗 The Multi-Hop ITC Chain
+
+A flat GSTR-1 vs GSTR-2B table match answers one question: *did the supplier
+report the invoice?* Reporting is not payment. The graph asks the second question
+too, by traversing through the supplier to the return where tax is actually paid:
+
+```
+(Vendor)-[:ISSUED_INVOICE]->(Invoice)-[:REPORTED_IN]->(GSTR-1)     declared
+(Vendor)-[:FILED_RETURN]->(GSTR3B {filed: false})                  but never paid
+```
+
+An invoice on that path looks clean one hop out and fails on the second. This is
+`Supplier GSTR-3B Not Filed` — ITC blocked under **s.16(2)(c)**, invisible to
+table matching.
+
+The Purchase Register closes the loop on the buyer's side, in both directions:
+
+| Finding | Meaning |
+|---|---|
+| In GSTR-2B, no `:RECORDED_IN_PR` edge | Supplier declared a supply the books never recorded — unbooked liability, or an invoice raised against your GSTIN |
+| In the PR, absent from GSTR-2B | Purchase booked but no credit available — reverse any ITC taken |
+
+---
+
 ## 🔍 How the Reconciliation Engine Classifies Findings
 
 Each finding carries a `detection` field, because not every check is equally
@@ -401,6 +431,7 @@ graph-native:
 | `POST` | `/api/graph/sync` | Project the MongoDB contents into Neo4j |
 | `GET` | `/api/reconcile` | Graph-traversal reconciliation (`?period=2025-08`), Mongo fallback |
 | `GET` | `/api/reconcile/evidence/{id}` | Graph neighbourhood backing a flagged invoice |
+| `GET` | `/api/audit-trail/{id}` | Generated audit trail for any flagged invoice |
 | `POST` | `/api/login` | Authenticate against bcrypt-hashed credentials |
 | `POST` | `/api/signup` | Register a new user (password hashed on write) |
 | `POST` | `/api/profile` | Update display name / email |

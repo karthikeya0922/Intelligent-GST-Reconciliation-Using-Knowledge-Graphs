@@ -319,6 +319,18 @@ export function DataProvider({ children }) {
         }
     };
 
+    // Generate an audit trail for any flagged invoice from live graph facts.
+    // Replaces the old hand-written lookup that only covered a few invoices.
+    const fetchAuditTrail = async (invoiceId) => {
+        try {
+            const res = await fetch(`${API}/audit-trail/${encodeURIComponent(invoiceId)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch {
+            return { error: 'The audit trail API is unreachable — start the backend to generate explanations.' };
+        }
+    };
+
     const fetchEvidence = async (invoiceId) => {
         try {
             const res = await fetch(`${API}/reconcile/evidence/${encodeURIComponent(invoiceId)}`);
@@ -333,6 +345,7 @@ export function DataProvider({ children }) {
         gstrReturns, riskFeatureImportance, complianceTrend,
         addVendor, addInvoice, predictVendorRisk, loading, apiOnline,
         modelInfo, graphStatus, graphSource, syncGraph, runReconciliation, fetchEvidence,
+        fetchAuditTrail,
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

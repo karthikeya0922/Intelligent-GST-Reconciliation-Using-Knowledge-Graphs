@@ -37,9 +37,12 @@ def main():
     print("2. Syncing MongoDB -> Neo4j...")
     vendors = list(db["vendors"].find({}, {"_id": 0}))
     invoices = list(db["invoices"].find({}, {"_id": 0}))
-    summary = sync.sync(vendors, invoices)
+    taxpayer = db["taxpayer"].find_one({}, {"_id": 0})
+    returns = list(db["returns"].find({"type": "GSTR-3B"}, {"_id": 0}))
+    summary = sync.sync(vendors, invoices, taxpayer=taxpayer, returns=returns)
     sync.compute_centrality()
     print(f"   OK: {summary['vendors']} vendors, {summary['invoices']} invoices, "
+          f"{summary['taxpayer']} taxpayer, {summary['gstr3bFilings']} GSTR-3B filings, "
           f"{summary['matched']} fully matched")
 
     after = sync.status()
@@ -71,7 +74,30 @@ def main():
         print(f"     mongo only: {sorted(mongo_missing - graph_missing)}")
         return 1
 
-    print("5. Fetching an evidence path...")
+    print("5. Cross-checking the multi-hop tax-payment chain...")
+    graph_unpaid = {
+        m["invoice_id"] for m in result["mismatches"]
+        if m["issue_type"] == "Supplier GSTR-3B Not Filed"
+    }
+    # Same question asked of MongoDB: invoices in GSTR-1 whose supplier did not
+    # file a GSTR-3B for that period.
+    unfiled = {
+        (r["gstin"], r["period"])
+        for r in db["returns"].find({"type": "GSTR-3B", "filed": False}, {"gstin": 1, "period": 1})
+    }
+    mongo_unpaid = {
+        d["id"] for d in db["invoices"].find({"gstr1Reported": True}, {"id": 1, "gstin": 1, "period": 1})
+        if (d.get("gstin"), d.get("period")) in unfiled
+    }
+    if graph_unpaid == mongo_unpaid:
+        print(f"   OK: both agree on {len(graph_unpaid)} invoice(s) with unremitted tax")
+    else:
+        print("   MISMATCH")
+        print(f"     graph only: {sorted(graph_unpaid - mongo_unpaid)}")
+        print(f"     mongo only: {sorted(mongo_unpaid - graph_unpaid)}")
+        return 1
+
+    print("6. Fetching an evidence path...")
     if graph_missing:
         sample = sorted(graph_missing)[0]
         evidence = engine.get_evidence_path(sample)

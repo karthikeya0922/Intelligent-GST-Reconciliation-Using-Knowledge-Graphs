@@ -36,6 +36,8 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT invoice_id IF NOT EXISTS FOR (i:Invoice) REQUIRE i.id IS UNIQUE",
     "CREATE CONSTRAINT einvoice_irn IF NOT EXISTS FOR (e:EInvoice) REQUIRE e.irn IS UNIQUE",
     "CREATE CONSTRAINT ewaybill_id IF NOT EXISTS FOR (w:EWayBill) REQUIRE w.id IS UNIQUE",
+    "CREATE CONSTRAINT taxpayer_gstin IF NOT EXISTS FOR (t:Taxpayer) REQUIRE t.gstin IS UNIQUE",
+    "CREATE CONSTRAINT gstr3b_key IF NOT EXISTS FOR (g:GSTR3B) REQUIRE (g.gstin, g.period) IS UNIQUE",
 ]
 
 
@@ -110,8 +112,8 @@ class GraphSync:
             for stmt in CONSTRAINTS:
                 session.run(stmt)
 
-    def sync(self, vendors, invoices, wipe=True):
-        """Project vendors and invoices into Neo4j. Returns a summary dict."""
+    def sync(self, vendors, invoices, wipe=True, taxpayer=None, returns=None):
+        """Project the GST ecosystem into Neo4j. Returns a summary dict."""
         self.ensure_constraints()
 
         with self.driver.session() as session:
@@ -121,15 +123,94 @@ class GraphSync:
                 session.run("MATCH (n) DETACH DELETE n")
                 self.ensure_constraints()
 
+            if taxpayer:
+                session.execute_write(self._write_taxpayer, taxpayer=taxpayer)
             session.execute_write(self._write_vendors, vendors=vendors)
             session.execute_write(self._write_invoices, invoices=invoices)
+            if taxpayer:
+                session.execute_write(self._link_taxpayer, invoices=invoices)
+            if returns:
+                session.execute_write(self._write_gstr3b, returns=returns)
             matched = session.execute_write(self._mark_matched)
 
         return {
             "vendors": len(vendors),
             "invoices": len(invoices),
+            "taxpayer": 1 if taxpayer else 0,
+            "gstr3bFilings": len(returns or []),
             "matched": matched,
         }
+
+    @staticmethod
+    def _write_taxpayer(tx, taxpayer):
+        tx.run(
+            """
+            MERGE (t:Taxpayer {gstin: $gstin})
+            SET t.id = $id, t.name = $name, t.state = $state,
+                t.legal_name = $legalName,
+                t.registration_type = $registrationType,
+                t.filing_frequency = $filingFrequency
+            """,
+            gstin=taxpayer["gstin"], id=taxpayer.get("id"), name=taxpayer.get("name"),
+            state=taxpayer.get("state"), legalName=taxpayer.get("legalName"),
+            registrationType=taxpayer.get("registrationType"),
+            filingFrequency=taxpayer.get("filingFrequency"),
+        )
+
+    @staticmethod
+    def _link_taxpayer(tx, invoices):
+        # Every invoice is billed to the taxpayer; only those the buyer actually
+        # booked carry :RECORDED_IN_PR. The absence of that edge is what the
+        # purchase-register check looks for.
+        tx.run(
+            """
+            MATCH (t:Taxpayer)
+            UNWIND $invoices AS inv
+            MATCH (i:Invoice {id: inv.id})
+            MERGE (i)-[:BILLED_TO]->(t)
+            FOREACH (_ IN CASE WHEN inv.inPurchaseRegister THEN [1] ELSE [] END |
+                MERGE (t)-[:RECORDED_IN_PR]->(i))
+            """,
+            invoices=invoices,
+        )
+        # The taxpayer's own GSTR-2B for each period is auto-generated for them.
+        tx.run(
+            """
+            MATCH (t:Taxpayer)
+            MATCH (g:GSTR {type: 'GSTR-2B'})
+            MERGE (t)-[:RECEIVES]->(g)
+            """
+        )
+
+    @staticmethod
+    def _write_gstr3b(tx, returns):
+        """GSTR-3B is per supplier per period - it is where tax is actually paid.
+
+        Note the chain runs through the Vendor, not through GSTR-1. The GSTR-1
+        nodes are shared per period (one node for all suppliers), so hanging
+        every supplier's 3B off them would assert 60 edges that claim things
+        like "Tata Steel's invoice was summarised into EID Parry's 3B". The
+        honest path is:
+
+            (Invoice)-[:REPORTED_IN]->(GSTR-1)          -- reported
+            (Invoice)<-[:ISSUED_INVOICE]-(Vendor)-[:FILED_RETURN]->(GSTR3B)
+                                                        -- and actually paid
+        """
+        tx.run(
+            """
+            UNWIND $returns AS r
+            MERGE (g3:GSTR3B {gstin: r.gstin, period: r.period})
+            SET g3.type = 'GSTR-3B',
+                g3.filed = r.filed,
+                g3.filed_date = r.filedDate,
+                g3.status = r.status,
+                g3.vendor_name = r.vendorName
+            WITH g3, r
+            MATCH (v:Vendor {gstin: r.gstin})
+            MERGE (v)-[:FILED_RETURN]->(g3)
+            """,
+            returns=returns,
+        )
 
     @staticmethod
     def _write_vendors(tx, vendors):
@@ -209,6 +290,8 @@ class GraphSync:
         "Vendor": "vendor",
         "Invoice": "invoice",
         "GSTR": "gstr",
+        "GSTR3B": "gstr3b",
+        "Taxpayer": "taxpayer",
         "EInvoice": "einvoice",
         "EWayBill": "ewaybill",
     }
@@ -218,6 +301,10 @@ class GraphSync:
         "REPORTED_IN": "reported",
         "ELECTRONIC_VERSION": "einvoice",
         "COVERS_SHIPMENT": "ewaybill",
+        "BILLED_TO": "billed",
+        "RECORDED_IN_PR": "purchase",
+        "FILED_RETURN": "filed",
+        "RECEIVES": "reported",
     }
 
     def fetch_graph(self):
@@ -230,7 +317,8 @@ class GraphSync:
             node_rows = session.run(
                 """
                 MATCH (n)
-                WHERE n:Vendor OR n:Invoice OR n:GSTR OR n:EInvoice OR n:EWayBill
+                WHERE n:Vendor OR n:Invoice OR n:GSTR OR n:GSTR3B OR n:Taxpayer
+                   OR n:EInvoice OR n:EWayBill
                 OPTIONAL MATCH (n)-[r]-()
                 RETURN elementId(n) AS eid,
                        labels(n)[0] AS label,
@@ -287,6 +375,27 @@ class GraphSync:
                 gtype, period = props.get("type", "GSTR"), props.get("period", "")
                 node.update({
                     "label": f"{gtype} {period}", "type": gtype, "period": period,
+                })
+            elif group == "gstr3b":
+                period = props.get("period", "")
+                node.update({
+                    "label": f"3B {period}",
+                    "type": "GSTR-3B",
+                    "period": period,
+                    "filed": props.get("filed"),
+                    "filingStatus": props.get("status"),
+                    "gstin": props.get("gstin"),
+                    "fullName": f"GSTR-3B {period} — {props.get('vendor_name', '')}",
+                    "status": "matched" if props.get("filed") else "flagged",
+                })
+            elif group == "taxpayer":
+                name = props.get("name", "Taxpayer")
+                node.update({
+                    "label": name if len(name) <= 16 else name[:15] + "…",
+                    "fullName": name,
+                    "gstin": props.get("gstin"),
+                    "state": props.get("state"),
+                    "registrationType": props.get("registration_type"),
                 })
             elif group == "einvoice":
                 irn = props.get("irn", "")

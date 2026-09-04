@@ -5,17 +5,21 @@ import { useData } from '../context/DataContext';
 import { Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Search, X, Database, AlertTriangle, Crosshair } from 'lucide-react';
 
 const nodeColors = {
+    taxpayer: '#f43f5e',
     vendor: '#f59e0b',
     invoice: '#3b82f6',
     gstr: '#22c55e',
+    gstr3b: '#14b8a6',
     einvoice: '#a855f7',
     ewaybill: '#06b6d4',
 };
 
 const nodeLabels = {
+    taxpayer: 'Taxpayer',
     vendor: 'Vendor',
     invoice: 'Invoice',
-    gstr: 'GSTR Return',
+    gstr: 'GSTR-1 / 2B',
+    gstr3b: 'GSTR-3B',
     einvoice: 'e-Invoice',
     ewaybill: 'e-Way Bill',
 };
@@ -25,13 +29,18 @@ const edgeColors = {
     reported: 'rgba(34,197,94,0.5)',
     einvoice: 'rgba(168,85,247,0.42)',
     ewaybill: 'rgba(6,182,212,0.42)',
+    billed: 'rgba(244,63,94,0.35)',
+    purchase: 'rgba(244,63,94,0.55)',
+    filed: 'rgba(20,184,166,0.5)',
 };
 
 const DIM = 'rgba(100,116,139,0.12)';
 
 // Node radius by type. Vendors read as the anchors of the graph, so they win.
 const sizeFor = (group) =>
-    group === 'vendor' ? 10 : group === 'gstr' ? 8.5 : group === 'invoice' ? 6.5 : 4.5;
+    group === 'taxpayer' ? 13 : group === 'vendor' ? 10
+    : group === 'gstr' || group === 'gstr3b' ? 8.5
+    : group === 'invoice' ? 6.5 : 4.5;
 
 const nodeId = (end) => (typeof end === 'object' ? end.id : end);
 
@@ -50,7 +59,9 @@ export default function KnowledgeGraph() {
     const hasFramed = useRef(false);
 
     const [layers, setLayers] = useState({
-        vendor: true, invoice: true, gstr: true, einvoice: true, ewaybill: true,
+        taxpayer: true, vendor: true, invoice: true, gstr: true,
+        gstr3b: false,
+        einvoice: true, ewaybill: true,
     });
     const toggleLayer = (key) => setLayers(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -151,8 +162,10 @@ export default function KnowledgeGraph() {
     useEffect(() => {
         const g = graphRef.current;
         if (!g) return;
-        g.d3Force('charge')?.strength(-420).distanceMax(600);
-        g.d3Force('link')?.distance(l => (l.type === 'issued' ? 70 : 42)).strength(0.55);
+        g.d3Force('charge')?.strength(-520).distanceMax(700);
+        g.d3Force('link')?.distance(l =>
+            l.type === 'issued' ? 75 : l.type === 'filed' ? 26 : l.type === 'billed' ? 110 : 45
+        ).strength(0.55);
         // Pull the whole drawing toward the canvas centre so it fills the frame
         // instead of drifting into one corner.
         g.d3Force('center')?.strength(0.06);
@@ -182,9 +195,9 @@ export default function KnowledgeGraph() {
     // ---- Canvas painters ----
     const paintNode = useCallback((node, ctx, globalScale) => {
         const { group } = node;
-        const isVendor = group === 'vendor';
+        const isVendor = group === 'vendor' || group === 'taxpayer';
         const isInvoice = group === 'invoice';
-        const isGstr = group === 'gstr';
+        const isGstr = group === 'gstr' || group === 'gstr3b';
         const isDoc = group === 'einvoice' || group === 'ewaybill';
         const size = sizeFor(group);
 
@@ -255,7 +268,8 @@ export default function KnowledgeGraph() {
         // Labels scale with zoom so they stay legible instead of vanishing.
         // Minor nodes only get a label once you've zoomed in or focused them.
         const fontSize = Math.max(3.2, 11 / globalScale);
-        const important = isVendor || isGstr || (isInvoice && node.status === 'flagged');
+        const important =
+            isVendor || group === 'gstr' || node.status === 'flagged';
         const showLabel = !dimmed && (important || isFocus || isMatch || globalScale > 2.2);
 
         if (showLabel) {
@@ -476,6 +490,7 @@ export default function KnowledgeGraph() {
                         <div><span style={{ color: '#ef4444' }}>●</span> Red ring = flagged / high risk</div>
                         <div><span style={{ color: '#facc15' }}>●</span> Yellow ring = search match</div>
                         <div>Hover to isolate · click to inspect</div>
+                        <div style={{ marginTop: '4px' }}>Enable <strong>GSTR-3B</strong> to see the tax-payment layer</div>
                     </div>
                 </div>
 

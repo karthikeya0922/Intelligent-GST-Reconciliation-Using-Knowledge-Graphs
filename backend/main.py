@@ -22,6 +22,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 import auth_utils
+from audit_trail import build_audit_trail
 
 load_dotenv()
 
@@ -66,6 +67,10 @@ vendors_col = db["vendors"]
 invoices_col = db["invoices"]
 alerts_col = db["alerts"]
 users_col = db["users"]
+# The filing entity (the buyer claiming ITC) and its own books.
+taxpayer_col = db["taxpayer"]
+# Per-vendor, per-period GSTR-3B filings - the return where tax is actually paid.
+returns_col = db["returns"]
 
 def serialize(doc):
     """Convert MongoDB document to JSON-safe dict"""
@@ -156,8 +161,78 @@ def seed_data():
         print("[OK] Seeded alerts")
 
 
+def seed_gst_ecosystem():
+    """Seed the entities that complete the GST model beyond vendor+invoice.
+
+    Three things the reconciliation needs but the original schema lacked:
+
+    * Taxpayer  - the buyer claiming ITC. Every invoice is billed to it, and it
+      is the entity whose GSTR-2B is auto-generated and whose GSTR-3B is filed.
+    * GSTR-3B   - the summary return where tax is actually *paid*. GSTR-1 only
+      reports an invoice; without the supplier's 3B the tax was never remitted,
+      so the ITC is still at risk. This is what makes the
+      invoice -> GSTR-1 -> GSTR-3B chain worth traversing.
+    * Purchase Register - the buyer's own books. Reconciling PR against GSTR-2B
+      is the match auditors actually run for ITC.
+    """
+    if taxpayer_col.count_documents({}) == 0:
+        taxpayer_col.insert_one({
+            "id": "TP001",
+            "name": "Quadric Manufacturing Pvt Ltd",
+            "gstin": "29AAQCQ1234M1Z8",
+            "state": "Karnataka",
+            "legalName": "Quadric Manufacturing Private Limited",
+            "registrationType": "Regular",
+            "filingFrequency": "Monthly",
+        })
+        print("[OK] Seeded taxpayer entity")
+
+    # GSTR-3B filing status per vendor per period. Vendors who reported an
+    # invoice in GSTR-1 but never filed 3B are the interesting case: the invoice
+    # looks fine one hop out, and only the second hop reveals unpaid tax.
+    if returns_col.count_documents({}) == 0:
+        periods = ["2025-07", "2025-08", "2025-09"]
+        # Vendors who defaulted on their 3B for a given period.
+        defaulters = {
+            "2025-07": {"V013"},
+            "2025-08": {"V005", "V014"},
+            "2025-09": {"V010", "V019"},
+        }
+        docs = []
+        for vendor in vendors_col.find({}, {"_id": 0, "id": 1, "gstin": 1, "name": 1}):
+            for period in periods:
+                filed = vendor["id"] not in defaulters.get(period, set())
+                docs.append({
+                    "gstin": vendor["gstin"],
+                    "vendorId": vendor["id"],
+                    "vendorName": vendor["name"],
+                    "type": "GSTR-3B",
+                    "period": period,
+                    "filed": filed,
+                    "filedDate": f"{period}-20" if filed else None,
+                    "status": "Filed" if filed else "Not Filed",
+                })
+        if docs:
+            returns_col.insert_many(docs)
+            print(f"[OK] Seeded {len(docs)} GSTR-3B filing records")
+
+    # Purchase Register: which invoices the buyer actually recorded in its books.
+    # Deliberate gaps in both directions so the PR<->2B checks have something to
+    # find - an unrecorded purchase is as much a finding as a missing invoice.
+    not_in_pr = {"INV-2025-013", "INV-2025-017"}
+    missing = list(invoices_col.find({"inPurchaseRegister": {"$exists": False}}, {"_id": 0, "id": 1}))
+    if missing:
+        for inv in missing:
+            invoices_col.update_one(
+                {"id": inv["id"]},
+                {"$set": {"inPurchaseRegister": inv["id"] not in not_in_pr}},
+            )
+        print(f"[OK] Backfilled purchase-register flags on {len(missing)} invoices")
+
+
 # Run seed on startup
 seed_data()
+seed_gst_ecosystem()
 
 # Rehash any legacy plaintext credentials left by earlier versions.
 auth_utils.migrate_plaintext_passwords(users_col)
@@ -574,6 +649,8 @@ def graph_sync():
         summary = sync.sync(
             list(vendors_col.find({}, {"_id": 0})),
             list(invoices_col.find({}, {"_id": 0})),
+            taxpayer=taxpayer_col.find_one({}, {"_id": 0}),
+            returns=list(returns_col.find({"type": "GSTR-3B"}, {"_id": 0})),
         )
         sync.compute_centrality()
         return {"success": True, "synced": summary, "graph": sync.status()}
@@ -661,9 +738,114 @@ def _mongo_reconciliation(period=None):
     }
 
 
+def _mongo_evidence(invoice_id: str):
+    """Evidence assembled from MongoDB, used when the graph is offline."""
+    inv = invoices_col.find_one({"id": invoice_id}, {"_id": 0})
+    if not inv:
+        return None
+
+    filings = []
+    if inv.get("gstr1Reported"): filings.append("GSTR-1")
+    if inv.get("gstr2bReported"): filings.append("GSTR-2B")
+
+    vendor = vendors_col.find_one({"id": inv.get("vendorId")}, {"_id": 0}) or {}
+    ret = returns_col.find_one(
+        {"gstin": inv.get("gstin"), "period": inv.get("period"), "type": "GSTR-3B"},
+        {"_id": 0},
+    )
+    taxpayer = taxpayer_col.find_one({}, {"_id": 0}) or {}
+    in_pr = inv.get("inPurchaseRegister")
+
+    path = (
+        f"(Vendor {inv.get('vendorName')}) -[:ISSUED_INVOICE]-> (Invoice {invoice_id}) "
+        f"-[:REPORTED_IN]-> {{{', '.join(filings) if filings else 'no GSTR return'}}}"
+    )
+    if ret is not None:
+        path += (
+            f"  |  (Vendor {inv.get('vendorName')}) -[:FILED_RETURN]-> "
+            f"(GSTR-3B {inv.get('period')}: {'filed' if ret.get('filed') else 'NOT filed'})"
+        )
+    if taxpayer:
+        edge = "-[:RECORDED_IN_PR]->" if in_pr else "--X-- (not in PR)"
+        path += f"  |  (Taxpayer {taxpayer.get('name')}) {edge} (Invoice {invoice_id})"
+
+    return {
+        "source": "mongodb",
+        "invoice_id": invoice_id,
+        "vendor": inv.get("vendorName"),
+        "gstin": inv.get("gstin"),
+        "vendor_risk": vendor.get("riskScore"),
+        "amount": inv.get("taxableAmount"),
+        "tax": inv.get("totalTax"),
+        "status": inv.get("matchStatus"),
+        "period": inv.get("period"),
+        "hsn": inv.get("hsn"),
+        "filings": filings,
+        "einvoices": 1 if inv.get("eInvoice") else 0,
+        "ewaybills": 1 if inv.get("eWayBill") else 0,
+        "gstr3b_filed": ret.get("filed") if ret else None,
+        "in_purchase_register": in_pr,
+        "taxpayer": taxpayer.get("name"),
+        "missing_gstr1": not inv.get("gstr1Reported"),
+        "graph_path": path,
+    }
+
+
+def _issues_for(invoice_id: str, evidence: dict):
+    """Every finding against one invoice, from the reconciliation engine.
+
+    An invoice can violate several rules at once - missing from GSTR-1 *and*
+    lacking an e-Way Bill - so the audit trail reports the full set rather than
+    just the stored single-valued matchStatus.
+    """
+    try:
+        result = api_reconcile(None)
+        issues = [
+            m["issue_type"] for m in result.get("mismatches", [])
+            if m.get("invoice_id") == invoice_id
+        ]
+    except Exception:
+        issues = []
+
+    stored = (evidence or {}).get("status")
+    if stored and stored != "Matched" and stored not in issues:
+        issues.insert(0, stored)
+    return issues
+
+
+@app.get("/api/audit-trail/{invoice_id}")
+def audit_trail(invoice_id: str):
+    """Generate an explainable audit trail for any flagged invoice.
+
+    Built from live graph facts, so it covers every flagged invoice rather than
+    the handful that once had prose written for them by hand.
+    """
+    evidence = None
+    if GRAPH_AVAILABLE:
+        sync = get_sync()
+        if sync.status().get("connected"):
+            try:
+                engine = ReconciliationEngine(driver=sync.driver)
+                evidence = engine.get_evidence_path(invoice_id)
+                if evidence:
+                    evidence["source"] = "neo4j"
+            except Exception as exc:
+                print(f"[WARN] Graph evidence lookup failed ({exc}).")
+
+    if evidence is None:
+        evidence = _mongo_evidence(invoice_id)
+    if evidence is None:
+        return {"error": "Invoice not found"}
+
+    evidence["issues"] = _issues_for(invoice_id, evidence)
+    trail = build_audit_trail(evidence)
+    trail["evidence_source"] = evidence.get("source", "mongodb")
+    return trail
+
+
 @app.get("/api/reconcile/evidence/{invoice_id}")
 def reconcile_evidence(invoice_id: str):
-    """Graph neighbourhood backing a flagged invoice - the audit trail's evidence."""
+    """Raw graph neighbourhood backing a flagged invoice, without the prose."""
     if GRAPH_AVAILABLE:
         sync = get_sync()
         if sync.status().get("connected"):
@@ -676,55 +858,8 @@ def reconcile_evidence(invoice_id: str):
             except Exception as exc:
                 print(f"[WARN] Evidence lookup failed ({exc}).")
 
-    inv = invoices_col.find_one({"id": invoice_id}, {"_id": 0})
-    if not inv:
-        return {"error": "Invoice not found"}
-
-    filings = []
-    if inv.get("gstr1Reported"): filings.append("GSTR-1")
-    if inv.get("gstr2bReported"): filings.append("GSTR-2B")
-
-    return {
-        "source": "mongodb",
-        "vendor": inv.get("vendorName"),
-        "gstin": inv.get("gstin"),
-        "amount": inv.get("taxableAmount"),
-        "tax": inv.get("totalTax"),
-        "status": inv.get("matchStatus"),
-        "period": inv.get("period"),
-        "filings": filings,
-        "einvoices": 1 if inv.get("eInvoice") else 0,
-        "ewaybills": 1 if inv.get("eWayBill") else 0,
-        "missing_gstr1": not inv.get("gstr1Reported"),
-        "graph_path": (
-            f"(Vendor {inv.get('vendorName')}) -[:ISSUED_INVOICE]-> "
-            f"(Invoice {invoice_id}) -[:REPORTED_IN]-> "
-            f"{{{', '.join(filings) if filings else 'no GSTR return'}}}"
-        ),
-    }
-
-
-# ---- Dashboard Stats ----
-@app.get("/api/stats")
-def get_stats():
-    total_invoices = invoices_col.count_documents({})
-    mismatches = invoices_col.count_documents({"matchStatus": {"$ne": "Matched"}})
-    pipeline = [{"$match": {"matchStatus": {"$ne": "Matched"}}}, {"$group": {"_id": None, "total": {"$sum": "$totalTax"}}}]
-    at_risk_result = list(invoices_col.aggregate(pipeline))
-    at_risk = at_risk_result[0]["total"] if at_risk_result else 0
-    total_vendors = vendors_col.count_documents({})
-    high_risk_vendors = vendors_col.count_documents({"status": "High Risk"})
-    match_rate = round(((total_invoices - mismatches) / total_invoices * 100), 1) if total_invoices > 0 else 0
-    
-    return {
-        "totalInvoices": total_invoices,
-        "totalMismatches": mismatches,
-        "atRiskITC": at_risk,
-        "vendorsMonitored": total_vendors,
-        "highRiskVendors": high_risk_vendors,
-        "matchRate": match_rate,
-        "avgResolutionDays": 4.2,
-    }
+    evidence = _mongo_evidence(invoice_id)
+    return evidence or {"error": "Invoice not found"}
 
 
 if __name__ == "__main__":

@@ -1,9 +1,11 @@
 """
 GST Data Ingestion Module
-Reads GSTR-1/2B/3B JSON/CSV files and loads into Neo4j Knowledge Graph
+Reads GSTR-1/2B, e-Invoice and Purchase Register files into the Neo4j Knowledge Graph
 
 Usage:
     python ingestion.py --file gstr1_sample.json --type GSTR-1 --period 2025-07
+    python ingestion.py --file purchases.csv --type purchase-register \
+        --taxpayer-gstin 29AAQCQ1234M1Z8 --period 2025-07
 """
 
 from neo4j import GraphDatabase
@@ -11,6 +13,16 @@ import json
 import csv
 import os
 from datetime import datetime
+
+
+def _num(value):
+    """Coerce a CSV cell to a float; blanks and stray symbols become 0."""
+    if value in (None, ""):
+        return 0.0
+    try:
+        return float(str(value).replace(",", "").replace("₹", "").strip())
+    except ValueError:
+        return 0.0
 
 
 class GSTIngester:
@@ -106,6 +118,76 @@ class GSTIngester:
             MERGE (i)-[:REPORTED_IN]->(g)
         """, **kwargs)
     
+    # ---- Purchase Register Ingestion (the buyer's own books) ----
+    def ingest_purchase_register(self, filepath, taxpayer_gstin, period=None):
+        """Load the buyer's Purchase Register from CSV or JSON.
+
+        The PR is what the taxpayer actually booked. Reconciling it against
+        GSTR-2B is the match auditors run for ITC: an entry present in one and
+        absent from the other is a finding in either direction.
+
+        CSV is accepted because that is how most accounting packages export.
+        Expected columns (case-insensitive):
+            invoice_no, invoice_date, supplier_gstin, taxable_value,
+            cgst, sgst, igst, hsn
+        """
+        rows = self._read_pr_rows(filepath)
+
+        with self.driver.session() as session:
+            for row in rows:
+                session.execute_write(
+                    self._create_pr_record,
+                    taxpayer_gstin=taxpayer_gstin,
+                    supplier_gstin=row["supplier_gstin"],
+                    invoice_id=row["invoice_no"],
+                    invoice_date=row.get("invoice_date", ""),
+                    taxable_value=_num(row.get("taxable_value")),
+                    cgst=_num(row.get("cgst")),
+                    sgst=_num(row.get("sgst")),
+                    igst=_num(row.get("igst")),
+                    hsn=str(row.get("hsn", "")),
+                    period=period or row.get("period", ""),
+                )
+        print(f"✅ Ingested {len(rows)} Purchase Register entries")
+        return len(rows)
+
+    @staticmethod
+    def _read_pr_rows(filepath):
+        """Read the PR from CSV or JSON, normalising header case."""
+        if filepath.lower().endswith(".json"):
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            rows = data.get("purchases", data) if isinstance(data, dict) else data
+            return [{str(k).strip().lower(): v for k, v in r.items()} for r in rows]
+
+        with open(filepath, "r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            return [
+                {str(k).strip().lower(): v for k, v in row.items() if k}
+                for row in reader
+            ]
+
+    @staticmethod
+    def _create_pr_record(tx, **kwargs):
+        # :RECORDED_IN_PR is the edge the purchase-register checks look for. Its
+        # absence on an invoice the supplier reported is the finding.
+        tx.run("""
+            MERGE (t:Taxpayer {gstin: $taxpayer_gstin})
+            MERGE (v:Vendor {gstin: $supplier_gstin})
+            MERGE (i:Invoice {id: $invoice_id})
+            SET i.pr_date = $invoice_date,
+                i.pr_taxable_amount = $taxable_value,
+                i.pr_cgst = $cgst,
+                i.pr_sgst = $sgst,
+                i.pr_igst = $igst,
+                i.pr_hsn = $hsn,
+                i.in_purchase_register = true,
+                i.period = coalesce(i.period, $period)
+            MERGE (v)-[:ISSUED_INVOICE]->(i)
+            MERGE (i)-[:BILLED_TO]->(t)
+            MERGE (t)-[:RECORDED_IN_PR]->(i)
+        """, **kwargs)
+
     # ---- e-Invoice Ingestion ----
     def ingest_einvoice(self, filepath):
         """Load e-Invoice data and link to existing invoices"""
@@ -157,8 +239,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GST Data Ingestion")
     parser.add_argument("--uri", default="bolt://localhost:7687")
     parser.add_argument("--file", required=True, help="Path to data file")
-    parser.add_argument("--type", choices=["GSTR-1", "GSTR-2B", "e-Invoice"], required=True)
+    parser.add_argument(
+        "--type",
+        choices=["GSTR-1", "GSTR-2B", "e-Invoice", "purchase-register"],
+        required=True,
+    )
     parser.add_argument("--period", help="Filing period (YYYY-MM)")
+    parser.add_argument("--taxpayer-gstin", help="Buyer GSTIN (purchase-register only)")
     args = parser.parse_args()
     
     ingester = GSTIngester(uri=args.uri)
@@ -169,5 +256,11 @@ if __name__ == "__main__":
             ingester.ingest_gstr2b(args.file, args.period)
         elif args.type == "e-Invoice":
             ingester.ingest_einvoice(args.file)
+        elif args.type == "purchase-register":
+            if not args.taxpayer_gstin:
+                parser.error("--taxpayer-gstin is required for purchase-register")
+            ingester.ingest_purchase_register(
+                args.file, args.taxpayer_gstin, args.period
+            )
     finally:
         ingester.close()

@@ -121,6 +121,92 @@ class ReconciliationEngine:
         """
         return [dict(row) for row in tx.run(query, period=period)]
 
+    def find_unpaid_tax_chains(self, period=None):
+        """Invoices reported in GSTR-1 whose supplier never filed GSTR-3B.
+
+        This is the multi-hop check the whole graph model exists for. One hop
+        out the invoice looks clean - it is in GSTR-1, so the supplier declared
+        it. The second hop, through the vendor to their GSTR-3B, reveals the
+        tax was never actually remitted. A flat GSTR-1 vs GSTR-2B table match
+        cannot see this at all.
+
+            (Invoice)-[:REPORTED_IN]->(GSTR-1)              declared
+            (Invoice)<-[:ISSUED_INVOICE]-(Vendor)-[:FILED_RETURN]->(GSTR3B)
+                                                            but not paid
+        """
+        with self.driver.session() as session:
+            return session.execute_read(self._query_unpaid_chain, period=period)
+
+    @staticmethod
+    def _query_unpaid_chain(tx, period):
+        query = """
+        MATCH (v:Vendor)-[:ISSUED_INVOICE]->(i:Invoice)-[:REPORTED_IN]->(g1:GSTR {type:'GSTR-1'})
+        WHERE ($period IS NULL OR i.period = $period)
+        MATCH (v)-[:FILED_RETURN]->(g3:GSTR3B {period: i.period})
+        WHERE g3.filed = false
+        RETURN i.id AS invoice_id,
+               i.taxable_amount AS amount,
+               coalesce(i.total_tax, 0) AS tax,
+               i.period AS period,
+               v.name AS vendor_name,
+               v.gstin AS vendor_gstin,
+               g3.status AS gstr3b_status,
+               'Supplier GSTR-3B Not Filed' AS issue_type,
+               'structural' AS detection
+        ORDER BY tax DESC
+        """
+        return [dict(row) for row in tx.run(query, period=period)]
+
+    def find_purchase_register_gaps(self, period=None):
+        """Mismatches between the buyer's Purchase Register and GSTR-2B.
+
+        Both directions matter, and they mean opposite things:
+
+        * in GSTR-2B but not in the PR - the buyer never booked a purchase the
+          supplier says they made. Unrecorded liability, or a fake invoice
+          raised against the taxpayer's GSTIN.
+        * in the PR but not in GSTR-2B - the buyer booked it and expects the
+          credit, but the supplier never reported it, so no ITC is available.
+        """
+        with self.driver.session() as session:
+            return session.execute_read(self._query_pr_gaps, period=period)
+
+    @staticmethod
+    def _query_pr_gaps(tx, period):
+        # In 2B, absent from the purchase register.
+        not_booked = """
+        MATCH (v:Vendor)-[:ISSUED_INVOICE]->(i:Invoice)-[:REPORTED_IN]->(:GSTR {type:'GSTR-2B'})
+        WHERE ($period IS NULL OR i.period = $period)
+          AND NOT EXISTS { MATCH (:Taxpayer)-[:RECORDED_IN_PR]->(i) }
+        RETURN i.id AS invoice_id,
+               i.taxable_amount AS amount,
+               coalesce(i.total_tax, 0) AS tax,
+               i.period AS period,
+               v.name AS vendor_name,
+               v.gstin AS vendor_gstin,
+               'Missing in Purchase Register' AS issue_type,
+               'structural' AS detection
+        ORDER BY tax DESC
+        """
+        rows = [dict(r) for r in tx.run(not_booked, period=period)]
+
+        # Booked by the buyer, but the supplier never reported it into 2B.
+        no_credit = """
+        MATCH (:Taxpayer)-[:RECORDED_IN_PR]->(i:Invoice)<-[:ISSUED_INVOICE]-(v:Vendor)
+        WHERE ($period IS NULL OR i.period = $period)
+          AND NOT EXISTS { MATCH (i)-[:REPORTED_IN]->(:GSTR {type:'GSTR-2B'}) }
+        RETURN i.id AS invoice_id,
+               i.taxable_amount AS amount,
+               coalesce(i.total_tax, 0) AS tax,
+               i.period AS period,
+               v.name AS vendor_name,
+               v.gstin AS vendor_gstin,
+               'In Purchase Register, Missing in GSTR-2B' AS issue_type,
+               'structural' AS detection
+        ORDER BY tax DESC
+        """
+        return rows + [dict(r) for r in tx.run(no_credit, period=period)]
+
     # ------------------------------------------------------------------
     # Field-level checks
     # ------------------------------------------------------------------
@@ -222,12 +308,21 @@ class ReconciliationEngine:
                 OPTIONAL MATCH (i)-[:REPORTED_IN]->(g:GSTR)
                 OPTIONAL MATCH (i)-[:ELECTRONIC_VERSION]->(e:EInvoice)
                 OPTIONAL MATCH (i)-[:COVERS_SHIPMENT]->(w:EWayBill)
+                OPTIONAL MATCH (v)-[:FILED_RETURN]->(g3:GSTR3B {period: i.period})
+                // Bind the taxpayer independently of the PR edge. Matching
+                // through :RECORDED_IN_PR would leave `t` null in exactly the
+                // case worth reporting - the purchase that was never booked.
+                OPTIONAL MATCH (t:Taxpayer)
+                OPTIONAL MATCH (t)-[pr:RECORDED_IN_PR]->(i)
                 RETURN v.name AS vendor, v.gstin AS gstin, v.risk_score AS vendor_risk,
                        i.taxable_amount AS amount, i.total_tax AS tax,
-                       i.match_status AS status, i.period AS period,
+                       i.match_status AS status, i.period AS period, i.hsn AS hsn,
                        collect(DISTINCT g.type) AS filings,
                        count(DISTINCT e) AS einvoices,
-                       count(DISTINCT w) AS ewaybills
+                       count(DISTINCT w) AS ewaybills,
+                       head(collect(DISTINCT g3.filed)) AS gstr3b_filed,
+                       count(pr) > 0 AS in_purchase_register,
+                       head(collect(DISTINCT t.name)) AS taxpayer
                 """,
                 invoice_id=invoice_id,
             ).single()
@@ -235,11 +330,26 @@ class ReconciliationEngine:
             return None
 
         data = dict(record)
+        data["invoice_id"] = invoice_id
         filings = data.get("filings") or []
-        data["graph_path"] = (
+
+        # Spell out the traversal that produced the finding, including the second
+        # hop through the vendor to their GSTR-3B when that is what failed.
+        path = (
             f"(Vendor {data['vendor']}) -[:ISSUED_INVOICE]-> (Invoice {invoice_id}) "
             f"-[:REPORTED_IN]-> {{{', '.join(filings) if filings else 'no GSTR return'}}}"
         )
+        if data.get("gstr3b_filed") is not None:
+            state = "filed" if data["gstr3b_filed"] else "NOT filed"
+            path += (
+                f"  |  (Vendor {data['vendor']}) -[:FILED_RETURN]-> "
+                f"(GSTR-3B {data['period']}: {state})"
+            )
+        if data.get("taxpayer"):
+            edge = "-[:RECORDED_IN_PR]->" if data.get("in_purchase_register") else "--X-- (not in PR)"
+            path += f"  |  (Taxpayer {data['taxpayer']}) {edge} (Invoice {invoice_id})"
+
+        data["graph_path"] = path
         data["missing_gstr1"] = "GSTR-1" not in filings
         return data
 
@@ -261,13 +371,19 @@ class ReconciliationEngine:
         hsn_diff = self.find_hsn_mismatches(period)
         ewb_missing = self.find_missing_ewaybills(period)
         einv_missing = self.find_orphan_einvoices(period)
+        unpaid = self.find_unpaid_tax_chains(period)
+        pr_gaps = self.find_purchase_register_gaps(period)
 
-        all_mismatches = missing + tax_diff + hsn_diff + ewb_missing + einv_missing
+        all_mismatches = (
+            missing + tax_diff + hsn_diff + ewb_missing + einv_missing + unpaid + pr_gaps
+        )
 
         for m in all_mismatches:
             m["severity"] = self.classify_mismatch(m, {})
 
         all_mismatches.sort(key=lambda x: x.get("tax") or x.get("amount") or 0, reverse=True)
+
+        pr_missing = sum(1 for m in pr_gaps if m["issue_type"] == "Missing in Purchase Register")
 
         return {
             "period": period or "all",
@@ -279,6 +395,9 @@ class ReconciliationEngine:
                 "hsn_mismatch": len(hsn_diff),
                 "eway_bill_missing": len(ewb_missing),
                 "einvoice_missing": len(einv_missing),
+                "supplier_gstr3b_not_filed": len(unpaid),
+                "missing_in_purchase_register": pr_missing,
+                "pr_not_in_gstr2b": len(pr_gaps) - pr_missing,
             },
             "mismatches": all_mismatches,
         }

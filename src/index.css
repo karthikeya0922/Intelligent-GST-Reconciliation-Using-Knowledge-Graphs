@@ -682,7 +682,7 @@ body {
 }
 
 .audit-bubble::before {
-  content: '🤖 AI Analysis';
+  content: '🔗 Graph Analysis';
   position: absolute;
   top: -10px;
   left: 20px;
