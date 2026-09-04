@@ -18,16 +18,13 @@ export default function LoginPage() {
         setError('');
         setIsLoading(true);
 
-        // Simulate network delay
-        await new Promise(r => setTimeout(r, 800));
-
         let result;
         if (isSignup) {
             if (!name.trim()) { setError('Name is required'); setIsLoading(false); return; }
             if (password.length < 6) { setError('Password must be at least 6 characters'); setIsLoading(false); return; }
-            result = signup(name, email, password);
+            result = await signup(name, email, password);
         } else {
-            result = login(email, password);
+            result = await login(email, password);
         }
 
         if (!result.success) {

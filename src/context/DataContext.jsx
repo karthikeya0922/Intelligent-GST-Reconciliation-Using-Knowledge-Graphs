@@ -9,14 +9,16 @@ const DataContext = createContext();
 
 const API = 'http://localhost:8000/api';
 
-// Client-side risk predictor (matches backend)
+// Offline-only risk heuristic. The authoritative score comes from the trained
+// RandomForest behind POST /api/predict-risk; this mirrors the backend's own
+// fallback (heuristic_risk in main.py) and is used only when the API is down.
 function predictRisk(vendor) {
     const missed = Math.min((vendor.missedFilings || 0) / 6, 1);
     const late = Math.min((vendor.avgDaysLate || 0) / 20, 1);
     const tx = vendor.totalTransactions || 100;
     const txScore = tx < 50 ? 0.8 : tx < 100 ? 0.4 : 0.1;
     const einv = (vendor.missedFilings || 0) > 2 ? 0.7 : 0.2;
-    return Math.min(Math.max(missed * 0.28 + late * 0.22 + txScore * 0.12 + einv * 0.12 + 0.3 * 0.08, 0.05), 0.95);
+    return Math.min(Math.max(missed * 0.34 + late * 0.28 + txScore * 0.18 + einv * 0.20, 0.05), 0.95);
 }
 
 function classifyRisk(score) {
@@ -32,6 +34,11 @@ export function DataProvider({ children }) {
     const [auditExplanations, setAuditExplanations] = useState(defaultAuditExplanations);
     const [loading, setLoading] = useState(true);
     const [apiOnline, setApiOnline] = useState(false);
+    const [modelInfo, setModelInfo] = useState(null);
+    const [graphStatus, setGraphStatus] = useState({ connected: false, reason: 'not checked' });
+    // Graph read back out of Neo4j. Null means unavailable — the client-side
+    // projection below is used instead.
+    const [neo4jGraph, setNeo4jGraph] = useState(null);
 
     // Fetch all data from MongoDB backend on mount
     const fetchAll = useCallback(async () => {
@@ -46,6 +53,21 @@ export function DataProvider({ children }) {
                 setInvoices(await invoicesRes.json());
                 setAlerts(await alertsRes.json());
                 setApiOnline(true);
+
+                // Report what is really scoring vendors and whether the graph is up,
+                // rather than asserting it in static UI copy.
+                fetch(`${API}/model/info`)
+                    .then(r => r.ok && r.json())
+                    .then(info => info && setModelInfo(info))
+                    .catch(() => setModelInfo(null));
+                fetch(`${API}/graph/status`)
+                    .then(r => r.ok && r.json())
+                    .then(s => s && setGraphStatus(s))
+                    .catch(() => setGraphStatus({ connected: false, reason: 'API unreachable' }));
+                fetch(`${API}/graph/data`)
+                    .then(r => r.ok && r.json())
+                    .then(g => setNeo4jGraph(g && g.available ? g : null))
+                    .catch(() => setNeo4jGraph(null));
             }
         } catch (err) {
             console.warn('API offline, using local mock data');
@@ -91,8 +113,10 @@ export function DataProvider({ children }) {
         };
     }, [invoices, mismatches, vendors]);
 
-    // Dynamic graph data — shows ALL vendors, invoices, GSTR returns, e-Invoice, e-Way Bill
-    const graphData = useMemo(() => {
+    // Client-side projection of the graph, built from the flat MongoDB rows.
+    // Used when Neo4j is unavailable; otherwise `graphData` below prefers the
+    // real graph read back out of the database.
+    const localGraphData = useMemo(() => {
         const nodes = []; const links = [];
         const addedVendors = new Set(); const addedGstrs = new Set();
 
@@ -150,6 +174,13 @@ export function DataProvider({ children }) {
 
         return { nodes, links };
     }, [vendors, invoices]);
+
+    // Prefer the real graph from Neo4j; fall back to the client-side projection.
+    const graphData = useMemo(
+        () => (neo4jGraph ? { nodes: neo4jGraph.nodes, links: neo4jGraph.links } : localGraphData),
+        [neo4jGraph, localGraphData]
+    );
+    const graphSource = neo4jGraph ? 'neo4j' : 'client';
 
     // ---- API Actions ----
 
@@ -229,9 +260,71 @@ export function DataProvider({ children }) {
         return newInvoice;
     };
 
-    const predictVendorRisk = (features) => {
+    // Scores a vendor with the trained RandomForest via the API, falling back to
+    // the local heuristic when the backend is unreachable. `source` says which ran.
+    const predictVendorRisk = async (features) => {
+        if (apiOnline) {
+            try {
+                const res = await fetch(`${API}/predict-risk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(features),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    return {
+                        score: data.score,
+                        status: data.status,
+                        source: data.source,
+                        modelFeatures: data.features || null,
+                        contributions: data.contributions || null,
+                        features,
+                    };
+                }
+            } catch (err) { console.warn('Prediction API unavailable, using heuristic:', err); }
+        }
+
         const score = predictRisk(features);
-        return { score, status: classifyRisk(score), features };
+        return { score, status: classifyRisk(score), source: 'heuristic', features };
+    };
+
+    // Rebuild the Neo4j projection from MongoDB.
+    const syncGraph = async () => {
+        try {
+            const res = await fetch(`${API}/graph/sync`, { method: 'POST' });
+            const data = await res.json();
+            if (data.graph) setGraphStatus(data.graph);
+            // Pull the rebuilt graph back so the visualisation reflects the sync.
+            if (data.success) {
+                try {
+                    const g = await (await fetch(`${API}/graph/data`)).json();
+                    setNeo4jGraph(g && g.available ? g : null);
+                } catch { /* keep whatever we had */ }
+            }
+            return data;
+        } catch {
+            return { success: false, error: 'API unreachable' };
+        }
+    };
+
+    // Run reconciliation server-side (Neo4j traversal, or the Mongo fallback).
+    const runReconciliation = async (period) => {
+        try {
+            const qs = period && period !== 'all' ? `?period=${encodeURIComponent(period)}` : '';
+            const res = await fetch(`${API}/reconcile${qs}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch {
+            return { error: 'Could not reach the reconciliation API', engine: 'unavailable' };
+        }
+    };
+
+    const fetchEvidence = async (invoiceId) => {
+        try {
+            const res = await fetch(`${API}/reconcile/evidence/${encodeURIComponent(invoiceId)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch { return null; }
     };
 
     const value = {
@@ -239,6 +332,7 @@ export function DataProvider({ children }) {
         graphData, alerts, auditExplanations, monthlyITCRisk,
         gstrReturns, riskFeatureImportance, complianceTrend,
         addVendor, addInvoice, predictVendorRisk, loading, apiOnline,
+        modelInfo, graphStatus, graphSource, syncGraph, runReconciliation, fetchEvidence,
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

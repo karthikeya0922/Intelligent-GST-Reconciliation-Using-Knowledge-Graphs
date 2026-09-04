@@ -1,0 +1,54 @@
+# Local infrastructure for GST ReconcileAI.
+#
+#   docker compose up -d
+#
+# Neo4j Browser: http://localhost:7474  (neo4j / gstreconcile)
+# Bolt:          bolt://localhost:7687
+# MongoDB:       mongodb://localhost:27017
+#
+# Both services are optional. The API degrades gracefully:
+#   - no MongoDB -> the frontend falls back to its bundled mock dataset
+#   - no Neo4j   -> graph endpoints report offline, Mongo-derived views still work
+
+services:
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: gst-neo4j
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/gstreconcile
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 512m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p gstreconcile 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: gst-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  mongo_data:

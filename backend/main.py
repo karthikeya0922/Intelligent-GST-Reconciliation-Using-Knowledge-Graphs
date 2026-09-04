@@ -1,6 +1,14 @@
 """
-GST ReconcileAI - MongoDB-Backed FastAPI Backend
-All data persisted in MongoDB. Frontend fetches and posts via REST API.
+GST ReconcileAI - FastAPI Backend
+
+MongoDB is the system of record. Two optional subsystems layer on top:
+
+  * a RandomForest vendor-risk model (risk_model.py), loaded at startup
+  * a Neo4j knowledge graph projection (graph_sync.py / reconcile.py)
+
+Both degrade gracefully. If scikit-learn is missing the API falls back to a
+documented heuristic; if Neo4j is unreachable the graph endpoints report offline
+and every Mongo-derived view keeps working.
 """
 
 from fastapi import FastAPI, Query, Body
@@ -13,12 +21,31 @@ import json, os
 from datetime import datetime
 from dotenv import load_dotenv
 
+import auth_utils
+
 load_dotenv()
+
+# ---- Optional: ML risk model -------------------------------------------------
+try:
+    from risk_model import get_model, map_vendor_features
+    ML_AVAILABLE = True
+except ImportError as exc:
+    print(f"[WARN] Risk model unavailable ({exc}); using heuristic fallback.")
+    ML_AVAILABLE = False
+
+# ---- Optional: Neo4j knowledge graph ----------------------------------------
+try:
+    from graph_sync import get_sync
+    from reconcile import ReconciliationEngine
+    GRAPH_AVAILABLE = True
+except ImportError as exc:
+    print(f"[WARN] Neo4j driver unavailable ({exc}); graph endpoints disabled.")
+    GRAPH_AVAILABLE = False
 
 app = FastAPI(
     title="GST ReconcileAI API",
     description="Knowledge Graph-powered GST Reconciliation Engine with MongoDB",
-    version="2.0.0"
+    version="3.0.0"
 )
 
 app.add_middleware(
@@ -109,10 +136,13 @@ def seed_data():
         print("[OK] Seeded 20 invoices")
 
     if users_col.count_documents({}) == 0:
+        # Demo accounts. Passwords are hashed on the way in - nothing is ever
+        # stored in plaintext, including seeds.
         users_col.insert_many([
-            {"email":"admin@gstreconcile.ai","password":"admin123","name":"Admin User","role":"admin","createdAt":"2025-01-01"},
-            {"email":"auditor@gstreconcile.ai","password":"auditor123","name":"Tax Auditor","role":"auditor","createdAt":"2025-03-15"},
+            {"email":"admin@gstreconcile.ai","password":auth_utils.hash_password("admin123"),"name":"Admin User","role":"admin","createdAt":"2025-01-01"},
+            {"email":"auditor@gstreconcile.ai","password":auth_utils.hash_password("auditor123"),"name":"Tax Auditor","role":"auditor","createdAt":"2025-03-15"},
         ])
+        users_col.create_index("email", unique=True)
         print("[OK] Seeded default users")
 
     if alerts_col.count_documents({}) == 0:
@@ -129,24 +159,83 @@ def seed_data():
 # Run seed on startup
 seed_data()
 
+# Rehash any legacy plaintext credentials left by earlier versions.
+auth_utils.migrate_plaintext_passwords(users_col)
+
+# Load (or train, on first run) the vendor risk model.
+RISK_MODEL = None
+if ML_AVAILABLE:
+    try:
+        RISK_MODEL = get_model()
+    except Exception as exc:
+        print(f"[WARN] Could not load risk model ({exc}); using heuristic fallback.")
+
 
 # ============================================================
-# Risk prediction (same logic as frontend)
+# Risk prediction
 # ============================================================
-def predict_risk(vendor_data):
+def heuristic_risk(vendor_data):
+    """Weighted-sum fallback, used only when the ML model is unavailable.
+
+    Weights sum to 0.74, so this saturates around 0.75 rather than 1.0 - it is a
+    rough ordering, not a calibrated probability. The RandomForest is preferred.
+    """
     missed = min(vendor_data.get("missedFilings", 0) / 6, 1)
     late = min(vendor_data.get("avgDaysLate", 0) / 20, 1)
     tx = vendor_data.get("totalTransactions", 100)
     tx_score = 0.8 if tx < 50 else (0.4 if tx < 100 else 0.1)
     einv = 0.7 if vendor_data.get("missedFilings", 0) > 2 else 0.2
 
-    score = missed * 0.28 + late * 0.22 + tx_score * 0.12 + einv * 0.12 + 0.3 * 0.08
+    score = missed * 0.34 + late * 0.28 + tx_score * 0.18 + einv * 0.20
     return min(max(score, 0.05), 0.95)
+
+
+def vendor_invoices(vendor_id, gstin=None):
+    """Fetch a vendor's invoices so risk features use real history."""
+    query = {"vendorId": vendor_id} if vendor_id else {"gstin": gstin}
+    return list(invoices_col.find(query, {"_id": 0}))
+
+
+def predict_risk(vendor_data, invoices=None):
+    """Score a vendor. Returns (score, source).
+
+    Uses the trained RandomForest against graph-derived features when available,
+    falling back to the heuristic otherwise.
+    """
+    if RISK_MODEL is not None:
+        try:
+            busiest = invoices_col.database["vendors"].find_one(
+                sort=[("totalTransactions", -1)]
+            ) or {}
+            max_tx = max(busiest.get("totalTransactions", 500) or 500, 1)
+            features = map_vendor_features(vendor_data, invoices, max_transactions=max_tx)
+            score, _label = RISK_MODEL.predict_one(features)
+            return float(score), "RandomForestClassifier"
+        except Exception as exc:
+            print(f"[WARN] Model prediction failed ({exc}); falling back to heuristic.")
+
+    return heuristic_risk(vendor_data), "heuristic"
+
 
 def classify_risk(score):
     if score >= 0.6: return "High Risk"
     if score >= 0.3: return "Review"
     return "Compliant"
+
+
+def next_id(collection, prefix, width=3):
+    """Generate the next sequential id without reusing a deleted one.
+
+    Counting documents (the previous approach) collides after any delete, so we
+    take the maximum existing suffix instead.
+    """
+    highest = 0
+    for doc in collection.find({}, {"id": 1, "_id": 0}):
+        raw = str(doc.get("id", ""))
+        suffix = raw.rsplit("-", 1)[-1] if "-" in raw else raw[len(prefix):]
+        if suffix.isdigit():
+            highest = max(highest, int(suffix))
+    return f"{prefix}{str(highest + 1).zfill(width)}"
 
 
 # ============================================================
@@ -155,7 +244,17 @@ def classify_risk(score):
 
 @app.get("/")
 def root():
-    return {"service": "GST ReconcileAI", "status": "online", "database": "MongoDB", "version": "2.0.0"}
+    return {
+        "service": "GST ReconcileAI",
+        "status": "online",
+        "database": "MongoDB",
+        "version": "3.0.0",
+        "subsystems": {
+            "riskModel": "RandomForestClassifier" if RISK_MODEL is not None else "heuristic",
+            "knowledgeGraph": "neo4j" if GRAPH_AVAILABLE else "unavailable",
+            "auth": "bcrypt",
+        },
+    }
 
 
 # ---- Vendors ----
@@ -166,11 +265,13 @@ def get_vendors():
 
 @app.post("/api/vendors")
 def add_vendor(vendor: dict = Body(...)):
-    count = vendors_col.count_documents({})
-    vid = f"V{str(count + 1).zfill(3)}"
-    risk_score = predict_risk(vendor)
+    if not vendor.get("name") or not vendor.get("gstin"):
+        return {"error": "name and gstin are required"}
+
+    vid = next_id(vendors_col, "V")
+    risk_score, source = predict_risk(vendor)
     status = classify_risk(risk_score)
-    
+
     new_vendor = {
         "id": vid,
         "name": vendor["name"],
@@ -183,7 +284,7 @@ def add_vendor(vendor: dict = Body(...)):
         "avgDaysLate": vendor.get("avgDaysLate", 0),
     }
     vendors_col.insert_one(new_vendor.copy())
-    
+
     # Add alert
     alert_type = "critical" if status == "High Risk" else ("warning" if status == "Review" else "success")
     alert = {
@@ -193,8 +294,8 @@ def add_vendor(vendor: dict = Body(...)):
         "icon": "🔴" if status == "High Risk" else ("🟡" if status == "Review" else "🟢"),
     }
     alerts_col.insert_one(alert.copy())
-    
-    return {"vendor": new_vendor, "alert": alert}
+
+    return {"vendor": new_vendor, "alert": alert, "modelSource": source}
 
 
 # ---- Invoices ----
@@ -205,9 +306,8 @@ def get_invoices():
 
 @app.post("/api/invoices")
 def add_invoice(invoice: dict = Body(...)):
-    count = invoices_col.count_documents({})
-    inv_id = f"INV-2025-{str(count + 1).zfill(3)}"
-    
+    inv_id = next_id(invoices_col, "INV-2025-")
+
     # Determine match status
     gstr1 = invoice.get("gstr1Reported", True)
     gstr2b = invoice.get("gstr2bReported", True)
@@ -270,8 +370,33 @@ def add_invoice(invoice: dict = Body(...)):
             "icon": "🟢",
         }
     alerts_col.insert_one(alert.copy())
-    
-    return {"invoice": new_invoice, "alert": alert}
+
+    # The new invoice changes this vendor's mismatch history, which is a model
+    # input - so re-score them rather than leaving a stale risk figure.
+    rescored = None
+    if vendor:
+        history = vendor_invoices(vendor["id"])
+        new_score, _source = predict_risk(vendor, history)
+        new_status = classify_risk(new_score)
+        vendors_col.update_one(
+            {"id": vendor["id"]},
+            {"$set": {"riskScore": round(new_score, 2), "status": new_status}},
+        )
+        rescored = {
+            "vendorId": vendor["id"],
+            "riskScore": round(new_score, 2),
+            "status": new_status,
+            "previousStatus": vendor.get("status"),
+        }
+        if new_status != vendor.get("status"):
+            alerts_col.insert_one({
+                "type": "critical" if new_status == "High Risk" else "warning",
+                "message": f"{vendor['name']} risk reclassified: {vendor.get('status')} → {new_status} ({int(new_score * 100)}%)",
+                "time": "Just now",
+                "icon": "🔴" if new_status == "High Risk" else "🟡",
+            })
+
+    return {"invoice": new_invoice, "alert": alert, "vendorRescored": rescored}
 
 
 # ---- Alerts ----
@@ -284,32 +409,299 @@ def get_alerts():
 # ---- Auth ----
 @app.post("/api/login")
 def login(creds: dict = Body(...)):
-    user = users_col.find_one({"email": creds["email"], "password": creds["password"]}, {"_id": 0, "password": 0})
-    if not user:
+    email = (creds.get("email") or "").strip().lower()
+    password = creds.get("password") or ""
+
+    user = users_col.find_one({"email": email})
+    # Verify against the bcrypt digest. The same generic error is returned for an
+    # unknown email and a bad password so the endpoint cannot enumerate accounts.
+    if not user or not auth_utils.verify_password(password, user.get("password", "")):
         return {"success": False, "error": "Invalid email or password"}
-    return {"success": True, "user": user}
+
+    return {"success": True, "user": auth_utils.public_user(user)}
+
 
 @app.post("/api/signup")
 def signup(data: dict = Body(...)):
-    if users_col.find_one({"email": data["email"]}):
+    email = (data.get("email") or "").strip().lower()
+    name = data.get("name") or ""
+    password = data.get("password") or ""
+
+    error = auth_utils.validate_credentials(email, password, name)
+    if error:
+        return {"success": False, "error": error}
+
+    if users_col.find_one({"email": email}):
         return {"success": False, "error": "Email already registered"}
-    users_col.insert_one({
-        "email": data["email"],
-        "password": data["password"],
-        "name": data["name"],
+
+    doc = {
+        "email": email,
+        "password": auth_utils.hash_password(password),
+        "name": name.strip(),
         "role": "user",
         "createdAt": datetime.now().strftime("%Y-%m-%d"),
-    })
-    user = {"email": data["email"], "name": data["name"], "role": "user"}
-    return {"success": True, "user": user}
+    }
+    result = users_col.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return {"success": True, "user": auth_utils.public_user(doc)}
+
+
+@app.post("/api/profile")
+def update_profile(data: dict = Body(...)):
+    """Update the display name / email on an account."""
+    current_email = (data.get("currentEmail") or "").strip().lower()
+    user = users_col.find_one({"email": current_email})
+    if not user:
+        return {"success": False, "error": "User not found"}
+
+    updates = {}
+    if data.get("name"):
+        updates["name"] = data["name"].strip()
+
+    new_email = (data.get("email") or "").strip().lower()
+    if new_email and new_email != current_email:
+        if not auth_utils.EMAIL_RE.match(new_email):
+            return {"success": False, "error": "Enter a valid email address"}
+        if users_col.find_one({"email": new_email}):
+            return {"success": False, "error": "Email already registered"}
+        updates["email"] = new_email
+
+    if updates:
+        users_col.update_one({"_id": user["_id"]}, {"$set": updates})
+        user.update(updates)
+
+    return {"success": True, "user": auth_utils.public_user(user)}
+
+
+@app.post("/api/change-password")
+def change_password(data: dict = Body(...)):
+    email = (data.get("email") or "").strip().lower()
+    user = users_col.find_one({"email": email})
+    if not user or not auth_utils.verify_password(data.get("currentPassword") or "", user.get("password", "")):
+        return {"success": False, "error": "Current password is incorrect"}
+
+    new_password = data.get("newPassword") or ""
+    error = auth_utils.validate_credentials(email, new_password)
+    if error:
+        return {"success": False, "error": error}
+
+    users_col.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password": auth_utils.hash_password(new_password)}},
+    )
+    return {"success": True}
 
 
 # ---- Risk Prediction ----
 @app.post("/api/predict-risk")
 def api_predict_risk(features: dict = Body(...)):
-    score = predict_risk(features)
+    """Score a vendor. Accepts either an existing vendorId or raw feature values."""
+    invoices = None
+    if features.get("vendorId"):
+        invoices = vendor_invoices(features["vendorId"])
+
+    score, source = predict_risk(features, invoices)
     status = classify_risk(score)
-    return {"score": round(score, 4), "status": status}
+
+    response = {
+        "score": round(score, 4),
+        "status": status,
+        "source": source,
+    }
+
+    # Include the feature vector and its drivers so the UI can explain the score.
+    if RISK_MODEL is not None and source != "heuristic":
+        try:
+            busiest = vendors_col.find_one(sort=[("totalTransactions", -1)]) or {}
+            max_tx = max(busiest.get("totalTransactions", 500) or 500, 1)
+            vec = map_vendor_features(features, invoices, max_transactions=max_tx)
+            response["features"] = vec
+            response["contributions"] = RISK_MODEL.explain(vec)
+        except Exception as exc:
+            print(f"[WARN] Could not build explanation: {exc}")
+
+    return response
+
+
+@app.get("/api/model/info")
+def model_info():
+    """Report what is actually scoring vendors, with its real evaluation metrics."""
+    if RISK_MODEL is None:
+        return {
+            "available": False,
+            "source": "heuristic",
+            "note": "scikit-learn model unavailable; using weighted-sum fallback.",
+        }
+
+    metrics = RISK_MODEL.metrics or {}
+    return {
+        "available": True,
+        "source": "RandomForestClassifier",
+        "accuracy": metrics.get("accuracy"),
+        "aucRoc": metrics.get("auc_roc"),
+        "crossValMean": metrics.get("cross_val_mean"),
+        "nEstimators": metrics.get("n_estimators"),
+        "maxDepth": metrics.get("max_depth"),
+        "nTrain": metrics.get("n_train"),
+        "nTest": metrics.get("n_test"),
+        "trainingData": metrics.get("training_data"),
+        "featureImportance": metrics.get("feature_importance", {}),
+        "classificationReport": metrics.get("classification_report", {}),
+    }
+
+
+# ---- Knowledge Graph (Neo4j) ----
+@app.get("/api/graph/status")
+def graph_status():
+    """Report Neo4j connectivity. Never raises - the UI polls this."""
+    if not GRAPH_AVAILABLE:
+        return {"connected": False, "reason": "neo4j driver not installed"}
+    return get_sync().status()
+
+
+@app.post("/api/graph/sync")
+def graph_sync():
+    """Project the current MongoDB contents into Neo4j."""
+    if not GRAPH_AVAILABLE:
+        return {"success": False, "error": "neo4j driver not installed"}
+
+    sync = get_sync()
+    status = sync.status()
+    if not status.get("connected"):
+        return {"success": False, "error": f"Neo4j unreachable: {status.get('reason')}"}
+
+    try:
+        summary = sync.sync(
+            list(vendors_col.find({}, {"_id": 0})),
+            list(invoices_col.find({}, {"_id": 0})),
+        )
+        sync.compute_centrality()
+        return {"success": True, "synced": summary, "graph": sync.status()}
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}
+
+
+@app.get("/api/graph/data")
+def graph_data():
+    """Serve the knowledge graph read straight out of Neo4j.
+
+    Returns 'available': False when the graph is offline, so the frontend can
+    fall back to building the projection client-side from MongoDB rows.
+    """
+    if not GRAPH_AVAILABLE:
+        return {"available": False, "reason": "neo4j driver not installed"}
+
+    sync = get_sync()
+    status = sync.status()
+    if not status.get("connected"):
+        return {"available": False, "reason": status.get("reason")}
+
+    try:
+        data = sync.fetch_graph()
+        if not data["nodes"]:
+            return {"available": False, "reason": "graph is empty — run POST /api/graph/sync"}
+        data["available"] = True
+        return data
+    except Exception as exc:
+        return {"available": False, "reason": str(exc)}
+
+
+@app.get("/api/reconcile")
+def api_reconcile(period: Optional[str] = Query(None)):
+    """Run graph-traversal reconciliation in Neo4j.
+
+    Falls back to the MongoDB match_status labels when the graph is offline, so
+    the endpoint always returns usable results. `engine` says which ran.
+    """
+    if GRAPH_AVAILABLE:
+        sync = get_sync()
+        if sync.status().get("connected"):
+            try:
+                engine = ReconciliationEngine(driver=sync.driver)
+                result = engine.full_reconciliation(period)
+                result["engine"] = "neo4j-graph-traversal"
+                return result
+            except Exception as exc:
+                print(f"[WARN] Graph reconciliation failed ({exc}); using MongoDB.")
+
+    return _mongo_reconciliation(period)
+
+
+def _mongo_reconciliation(period=None):
+    """Mongo-backed equivalent used when Neo4j is unavailable."""
+    query = {"matchStatus": {"$ne": "Matched"}}
+    if period:
+        query["period"] = period
+
+    mismatches = []
+    by_type = {}
+    for inv in invoices_col.find(query, {"_id": 0}):
+        issue = inv.get("matchStatus", "Unknown")
+        by_type[issue] = by_type.get(issue, 0) + 1
+        mismatches.append({
+            "invoice_id": inv.get("id"),
+            "amount": inv.get("taxableAmount", 0),
+            "tax": inv.get("totalTax", 0),
+            "period": inv.get("period"),
+            "vendor_name": inv.get("vendorName"),
+            "vendor_gstin": inv.get("gstin"),
+            "issue_type": issue,
+            "detection": "label-carried",
+            "severity": inv.get("riskLevel", "Low"),
+        })
+
+    mismatches.sort(key=lambda m: m["tax"], reverse=True)
+    return {
+        "period": period or "all",
+        "engine": "mongodb-fallback",
+        "total_mismatches": len(mismatches),
+        "total_tax_at_risk": sum(m["tax"] for m in mismatches),
+        "by_type": by_type,
+        "mismatches": mismatches,
+    }
+
+
+@app.get("/api/reconcile/evidence/{invoice_id}")
+def reconcile_evidence(invoice_id: str):
+    """Graph neighbourhood backing a flagged invoice - the audit trail's evidence."""
+    if GRAPH_AVAILABLE:
+        sync = get_sync()
+        if sync.status().get("connected"):
+            try:
+                engine = ReconciliationEngine(driver=sync.driver)
+                evidence = engine.get_evidence_path(invoice_id)
+                if evidence:
+                    evidence["source"] = "neo4j"
+                    return evidence
+            except Exception as exc:
+                print(f"[WARN] Evidence lookup failed ({exc}).")
+
+    inv = invoices_col.find_one({"id": invoice_id}, {"_id": 0})
+    if not inv:
+        return {"error": "Invoice not found"}
+
+    filings = []
+    if inv.get("gstr1Reported"): filings.append("GSTR-1")
+    if inv.get("gstr2bReported"): filings.append("GSTR-2B")
+
+    return {
+        "source": "mongodb",
+        "vendor": inv.get("vendorName"),
+        "gstin": inv.get("gstin"),
+        "amount": inv.get("taxableAmount"),
+        "tax": inv.get("totalTax"),
+        "status": inv.get("matchStatus"),
+        "period": inv.get("period"),
+        "filings": filings,
+        "einvoices": 1 if inv.get("eInvoice") else 0,
+        "ewaybills": 1 if inv.get("eWayBill") else 0,
+        "missing_gstr1": not inv.get("gstr1Reported"),
+        "graph_path": (
+            f"(Vendor {inv.get('vendorName')}) -[:ISSUED_INVOICE]-> "
+            f"(Invoice {invoice_id}) -[:REPORTED_IN]-> "
+            f"{{{', '.join(filings) if filings else 'no GSTR return'}}}"
+        ),
+    }
 
 
 # ---- Dashboard Stats ----

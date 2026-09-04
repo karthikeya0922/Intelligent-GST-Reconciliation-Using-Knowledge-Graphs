@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react
 import { LayoutDashboard, Network, GitCompare, ShieldAlert, FileSearch, Users, Database, Activity, Settings as SettingsIcon, Sun, Moon, LogOut, PlusCircle } from 'lucide-react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
+import { DataProvider, useData } from './context/DataContext';
 import Dashboard from './pages/Dashboard';
 import KnowledgeGraph from './pages/KnowledgeGraph';
 import Reconciliation from './pages/Reconciliation';
@@ -84,19 +84,52 @@ function Sidebar() {
         </NavLink>
       </nav>
 
-      <div className="sidebar-footer">
-        <div className="status-indicator">
-          <Database size={14} />
-          <span>Neo4j Connected</span>
-          <span className="status-dot"></span>
-        </div>
-        <div className="status-indicator" style={{ marginTop: '8px' }}>
-          <Activity size={14} />
-          <span>LLM Engine Active</span>
-          <span className="status-dot"></span>
-        </div>
-      </div>
+      <SystemStatus />
     </aside>
+  );
+}
+
+// Live service status. These used to be hardcoded "connected" labels; they now
+// reflect what the API actually reports, so the sidebar cannot claim a graph or
+// model that is not running.
+function SystemStatus() {
+  const { apiOnline, graphStatus, modelInfo } = useData();
+
+  const rows = [
+    {
+      icon: <Database size={14} />,
+      label: apiOnline ? 'MongoDB Connected' : 'MongoDB Offline (mock data)',
+      ok: apiOnline,
+      title: apiOnline ? 'API reachable, serving MongoDB' : 'API unreachable — using bundled mock dataset',
+    },
+    {
+      icon: <Network size={14} />,
+      label: graphStatus?.connected ? 'Neo4j Connected' : 'Neo4j Offline',
+      ok: !!graphStatus?.connected,
+      title: graphStatus?.connected
+        ? `${graphStatus.relationships ?? 0} relationships projected`
+        : graphStatus?.reason || 'Not connected',
+    },
+    {
+      icon: <Activity size={14} />,
+      label: modelInfo?.available ? 'Risk Model Loaded' : 'Risk Model: heuristic',
+      ok: !!modelInfo?.available,
+      title: modelInfo?.available
+        ? `${modelInfo.source} — accuracy ${(modelInfo.accuracy * 100).toFixed(1)}%`
+        : 'scikit-learn model unavailable; weighted-sum fallback in use',
+    },
+  ];
+
+  return (
+    <div className="sidebar-footer">
+      {rows.map((row, i) => (
+        <div className="status-indicator" key={i} style={i ? { marginTop: '8px' } : undefined} title={row.title}>
+          {row.icon}
+          <span>{row.label}</span>
+          <span className="status-dot" style={{ background: row.ok ? '#22c55e' : '#ef4444' }}></span>
+        </div>
+      ))}
+    </div>
   );
 }
 

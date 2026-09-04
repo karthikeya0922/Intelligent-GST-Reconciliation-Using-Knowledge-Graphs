@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
-import { Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Search, X, Database, AlertTriangle, Crosshair } from 'lucide-react';
 
 const nodeColors = {
     vendor: '#f59e0b',
@@ -21,52 +21,123 @@ const nodeLabels = {
 };
 
 const edgeColors = {
-    issued: 'rgba(245,158,11,0.5)',
-    reported: 'rgba(34,197,94,0.45)',
-    einvoice: 'rgba(168,85,247,0.4)',
-    ewaybill: 'rgba(6,182,212,0.4)',
+    issued: 'rgba(245,158,11,0.55)',
+    reported: 'rgba(34,197,94,0.5)',
+    einvoice: 'rgba(168,85,247,0.42)',
+    ewaybill: 'rgba(6,182,212,0.42)',
 };
 
+const DIM = 'rgba(100,116,139,0.12)';
+
+// Node radius by type. Vendors read as the anchors of the graph, so they win.
+const sizeFor = (group) =>
+    group === 'vendor' ? 10 : group === 'gstr' ? 8.5 : group === 'invoice' ? 6.5 : 4.5;
+
+const nodeId = (end) => (typeof end === 'object' ? end.id : end);
+
 export default function KnowledgeGraph() {
-    const { graphData, vendors, invoices } = useData();
+    const { graphData, graphSource, graphStatus, vendors, invoices } = useData();
     const [selectedNode, setSelectedNode] = useState(null);
-    const [dimensions, setDimensions] = useState({ width: 800, height: 550 });
+    const [hoverNode, setHoverNode] = useState(null);
+    const [search, setSearch] = useState('');
+    // Default to hiding unlinked nodes: with no edge holding them in, the charge
+    // force pushes them to the far edge of the canvas and zoomToFit then has to
+    // shrink the whole graph to include them. The toggle brings them back.
+    const [hideOrphans, setHideOrphans] = useState(true);
+    const [dimensions, setDimensions] = useState({ width: 800, height: 680 });
     const containerRef = useRef(null);
     const graphRef = useRef();
+    const hasFramed = useRef(false);
 
-    // Layer visibility toggles
     const [layers, setLayers] = useState({
         vendor: true, invoice: true, gstr: true, einvoice: true, ewaybill: true,
     });
-
     const toggleLayer = (key) => setLayers(prev => ({ ...prev, [key]: !prev[key] }));
 
-    // Filter graph data based on visible layers
+    // ---- Filtering: layers, then optionally isolated nodes ----
     const filteredGraph = useMemo(() => {
         const visibleNodes = graphData.nodes.filter(n => layers[n.group]);
         const visibleIds = new Set(visibleNodes.map(n => n.id));
-        const visibleLinks = graphData.links.filter(l => {
-            const sId = typeof l.source === 'object' ? l.source.id : l.source;
-            const tId = typeof l.target === 'object' ? l.target.id : l.target;
-            return visibleIds.has(sId) && visibleIds.has(tId);
-        });
-        return { nodes: visibleNodes, links: visibleLinks };
-    }, [graphData, layers]);
+        const visibleLinks = graphData.links.filter(
+            l => visibleIds.has(nodeId(l.source)) && visibleIds.has(nodeId(l.target))
+        );
 
-    // Stats
+        if (!hideOrphans) return { nodes: visibleNodes, links: visibleLinks };
+
+        // An orphan here is a node with no edge *within the current view* — e.g. a
+        // vendor who has issued no invoices yet.
+        const connected = new Set();
+        visibleLinks.forEach(l => { connected.add(nodeId(l.source)); connected.add(nodeId(l.target)); });
+        return { nodes: visibleNodes.filter(n => connected.has(n.id)), links: visibleLinks };
+    }, [graphData, layers, hideOrphans]);
+
+    const orphanCount = useMemo(() => {
+        const connected = new Set();
+        graphData.links.forEach(l => { connected.add(nodeId(l.source)); connected.add(nodeId(l.target)); });
+        return graphData.nodes.filter(n => !connected.has(n.id)).length;
+    }, [graphData]);
+
+    // ---- Adjacency, for neighbour highlighting ----
+    const adjacency = useMemo(() => {
+        const map = new Map();
+        filteredGraph.links.forEach(l => {
+            const s = nodeId(l.source), t = nodeId(l.target);
+            if (!map.has(s)) map.set(s, new Set());
+            if (!map.has(t)) map.set(t, new Set());
+            map.get(s).add(t);
+            map.get(t).add(s);
+        });
+        return map;
+    }, [filteredGraph]);
+
+    // The node driving the highlight: hover takes priority over selection.
+    const focusNode = hoverNode || selectedNode;
+    const highlightIds = useMemo(() => {
+        if (!focusNode) return null;
+        const set = new Set([focusNode.id]);
+        (adjacency.get(focusNode.id) || new Set()).forEach(id => set.add(id));
+        return set;
+    }, [focusNode, adjacency]);
+
+    // ---- Search ----
+    const searchMatches = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return null;
+        return new Set(
+            filteredGraph.nodes
+                .filter(n =>
+                    (n.fullName || n.label || '').toLowerCase().includes(q) ||
+                    (n.gstin || '').toLowerCase().includes(q) ||
+                    (n.invoiceId || '').toLowerCase().includes(q) ||
+                    (n.matchStatus || '').toLowerCase().includes(q)
+                )
+                .map(n => n.id)
+        );
+    }, [search, filteredGraph]);
+
+    const focusFirstMatch = useCallback(() => {
+        if (!searchMatches?.size) return;
+        const target = filteredGraph.nodes.find(n => searchMatches.has(n.id));
+        if (target && graphRef.current) {
+            graphRef.current.centerAt(target.x, target.y, 600);
+            graphRef.current.zoom(3, 600);
+            setSelectedNode(target);
+        }
+    }, [searchMatches, filteredGraph]);
+
     const stats = useMemo(() => ({
-        vendors: vendors.length,
-        invoices: invoices.length,
-        flagged: invoices.filter(i => i.matchStatus !== 'Matched').length,
+        vendors: graphData.nodes.filter(n => n.group === 'vendor').length || vendors.length,
+        invoices: graphData.nodes.filter(n => n.group === 'invoice').length || invoices.length,
+        flagged: graphData.nodes.filter(n => n.status === 'flagged').length,
         nodes: filteredGraph.nodes.length,
         edges: filteredGraph.links.length,
-    }), [vendors, invoices, filteredGraph]);
+    }), [graphData, filteredGraph, vendors, invoices]);
 
     useEffect(() => {
         const updateDimensions = () => {
             if (containerRef.current) {
                 const rect = containerRef.current.getBoundingClientRect();
-                setDimensions({ width: rect.width, height: 550 });
+                setDimensions({ width: rect.width, height: 680 });
             }
         };
         updateDimensions();
@@ -74,31 +145,72 @@ export default function KnowledgeGraph() {
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
 
+    // Spread the layout out — the default charge packs 80+ nodes into an
+    // unreadable knot. Tuned once per graph change; the actual framing happens
+    // in onEngineStop below, when the simulation has settled.
+    useEffect(() => {
+        const g = graphRef.current;
+        if (!g) return;
+        g.d3Force('charge')?.strength(-420).distanceMax(600);
+        g.d3Force('link')?.distance(l => (l.type === 'issued' ? 70 : 42)).strength(0.55);
+        // Pull the whole drawing toward the canvas centre so it fills the frame
+        // instead of drifting into one corner.
+        g.d3Force('center')?.strength(0.06);
+        g.d3ReheatSimulation?.();
+    }, [filteredGraph]);
+
+    // Frame the graph once the force simulation actually stops. Fitting on a
+    // timer catches the layout mid-flight and leaves it small and off-centre.
+    const handleEngineStop = useCallback(() => {
+        if (!hasFramed.current) {
+            graphRef.current?.zoomToFit(500, 55);
+            hasFramed.current = true;
+        }
+    }, []);
+
+    // Re-frame when the visible set changes (layer toggles, orphan filter).
+    useEffect(() => { hasFramed.current = false; }, [filteredGraph]);
+
     const handleNodeClick = useCallback((node) => {
         setSelectedNode(node);
         if (graphRef.current) {
             graphRef.current.centerAt(node.x, node.y, 600);
-            graphRef.current.zoom(2.5, 600);
+            graphRef.current.zoom(2.8, 600);
         }
     }, []);
 
-    const paintNode = useCallback((node, ctx) => {
-        const isVendor = node.group === 'vendor';
-        const isInvoice = node.group === 'invoice';
-        const isGstr = node.group === 'gstr';
-        const isDoc = node.group === 'einvoice' || node.group === 'ewaybill';
-        const size = isVendor ? 10 : isGstr ? 8 : isInvoice ? 7 : 5;
-        const color = nodeColors[node.group] || '#fff';
+    // ---- Canvas painters ----
+    const paintNode = useCallback((node, ctx, globalScale) => {
+        const { group } = node;
+        const isVendor = group === 'vendor';
+        const isInvoice = group === 'invoice';
+        const isGstr = group === 'gstr';
+        const isDoc = group === 'einvoice' || group === 'ewaybill';
+        const size = sizeFor(group);
 
-        // Glow for main entities
-        if (isVendor || (isInvoice && node.status === 'flagged')) {
-            ctx.shadowColor = isInvoice ? '#ef4444' : color;
-            ctx.shadowBlur = isVendor ? 15 : 10;
+        const dimmed = highlightIds ? !highlightIds.has(node.id) : false;
+        const isMatch = searchMatches?.has(node.id);
+        const isFocus = focusNode?.id === node.id;
+        const color = dimmed ? DIM : (nodeColors[group] || '#fff');
+
+        ctx.globalAlpha = dimmed ? 0.35 : 1;
+
+        // Search hit: pulsing outer ring so it's findable in a dense graph.
+        if (isMatch) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, size + 5, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+        }
+
+        if (!dimmed && (isVendor || isFocus || (isInvoice && node.status === 'flagged'))) {
+            ctx.shadowColor = isInvoice && node.status === 'flagged' ? '#ef4444' : nodeColors[group];
+            ctx.shadowBlur = isFocus ? 20 : isVendor ? 14 : 10;
         }
 
         ctx.beginPath();
         if (isVendor) {
-            // Hexagon
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i - Math.PI / 6;
                 const x = node.x + size * Math.cos(angle);
@@ -107,17 +219,14 @@ export default function KnowledgeGraph() {
             }
             ctx.closePath();
         } else if (isGstr) {
-            // Diamond
             ctx.moveTo(node.x, node.y - size);
             ctx.lineTo(node.x + size, node.y);
             ctx.lineTo(node.x, node.y + size);
             ctx.lineTo(node.x - size, node.y);
             ctx.closePath();
         } else if (isDoc) {
-            // Small square
             ctx.rect(node.x - size / 2, node.y - size / 2, size, size);
         } else {
-            // Circle for invoices
             ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
         }
 
@@ -125,32 +234,56 @@ export default function KnowledgeGraph() {
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Red ring for flagged invoices
-        if (node.status === 'flagged') {
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+        if (!dimmed) {
+            if (node.status === 'flagged') {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            if (isVendor && node.risk > 0.6) {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
+            if (isFocus) {
+                ctx.strokeStyle = '#f8fafc';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
         }
 
-        // High risk vendor ring
-        if (isVendor && node.risk > 0.6) {
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-        }
+        // Labels scale with zoom so they stay legible instead of vanishing.
+        // Minor nodes only get a label once you've zoomed in or focused them.
+        const fontSize = Math.max(3.2, 11 / globalScale);
+        const important = isVendor || isGstr || (isInvoice && node.status === 'flagged');
+        const showLabel = !dimmed && (important || isFocus || isMatch || globalScale > 2.2);
 
-        // Label (only for vendors, GSTR, flagged invoices)
-        if (isVendor || isGstr || (isInvoice && node.status === 'flagged')) {
-            ctx.font = `${isVendor ? 'bold ' : ''}3.5px Inter, sans-serif`;
+        if (showLabel) {
+            ctx.font = `${isVendor ? '700 ' : '500 '}${fontSize}px Inter, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillStyle = '#cbd5e1';
-            ctx.fillText(node.label, node.x, node.y + size + 2);
+            const text = node.label || '';
+            const y = node.y + size + 2;
+
+            // Backing plate keeps text readable over edges.
+            if (isFocus || isMatch || globalScale > 2.2) {
+                const w = ctx.measureText(text).width;
+                ctx.fillStyle = 'rgba(15,23,42,0.78)';
+                ctx.fillRect(node.x - w / 2 - 1.5, y - 0.5, w + 3, fontSize + 1.5);
+            }
+            ctx.fillStyle = isMatch ? '#facc15' : isVendor ? '#f1f5f9' : '#cbd5e1';
+            ctx.fillText(text, node.x, y);
         }
-    }, []);
+
+        ctx.globalAlpha = 1;
+    }, [highlightIds, searchMatches, focusNode]);
 
     const paintLink = useCallback((link, ctx) => {
-        const color = edgeColors[link.type] || 'rgba(255,255,255,0.15)';
+        const s = nodeId(link.source), t = nodeId(link.target);
+        const dimmed = highlightIds ? !(highlightIds.has(s) && highlightIds.has(t)) : false;
+        const color = dimmed ? DIM : (edgeColors[link.type] || 'rgba(255,255,255,0.15)');
+
+        ctx.globalAlpha = dimmed ? 0.25 : 1;
         ctx.strokeStyle = color;
         ctx.lineWidth = link.type === 'issued' ? 1.8 : 1;
 
@@ -159,21 +292,32 @@ export default function KnowledgeGraph() {
         ctx.lineTo(link.target.x, link.target.y);
         ctx.stroke();
 
-        // Directional arrow at midpoint
-        const dx = link.target.x - link.source.x;
-        const dy = link.target.y - link.source.y;
-        const angle = Math.atan2(dy, dx);
-        const midX = (link.source.x + link.target.x) / 2;
-        const midY = (link.source.y + link.target.y) / 2;
-        const arrLen = 3;
+        if (!dimmed) {
+            const dx = link.target.x - link.source.x;
+            const dy = link.target.y - link.source.y;
+            const angle = Math.atan2(dy, dx);
+            const midX = (link.source.x + link.target.x) / 2;
+            const midY = (link.source.y + link.target.y) / 2;
+            const arrLen = 3;
 
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(midX + arrLen * Math.cos(angle), midY + arrLen * Math.sin(angle));
-        ctx.lineTo(midX + arrLen * Math.cos(angle - 2.5), midY + arrLen * Math.sin(angle - 2.5));
-        ctx.lineTo(midX + arrLen * Math.cos(angle + 2.5), midY + arrLen * Math.sin(angle + 2.5));
-        ctx.fill();
-    }, []);
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(midX + arrLen * Math.cos(angle), midY + arrLen * Math.sin(angle));
+            ctx.lineTo(midX + arrLen * Math.cos(angle - 2.5), midY + arrLen * Math.sin(angle - 2.5));
+            ctx.lineTo(midX + arrLen * Math.cos(angle + 2.5), midY + arrLen * Math.sin(angle + 2.5));
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }, [highlightIds]);
+
+    // Neighbours of the selected node, for the detail panel.
+    const neighbours = useMemo(() => {
+        if (!selectedNode) return [];
+        const ids = adjacency.get(selectedNode.id) || new Set();
+        return filteredGraph.nodes.filter(n => ids.has(n.id));
+    }, [selectedNode, adjacency, filteredGraph]);
+
+    const fromNeo4j = graphSource === 'neo4j';
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
@@ -183,7 +327,17 @@ export default function KnowledgeGraph() {
                         <h2>Knowledge Graph Explorer</h2>
                         <p>Interactive entity graph of GST vendors, invoices, returns, and compliance documents</p>
                     </div>
-                    <span className="badge info">{stats.nodes} nodes · {stats.edges} edges</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span className={`badge ${fromNeo4j ? 'compliant' : 'review'}`} title={
+                            fromNeo4j
+                                ? `Read from Neo4j at ${graphStatus?.uri || 'bolt://localhost:7687'}`
+                                : `Neo4j unavailable (${graphStatus?.reason || 'not connected'}) — projection built in the browser from MongoDB rows`
+                        }>
+                            <Database size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
+                            {fromNeo4j ? 'Live from Neo4j' : 'Client-side projection'}
+                        </span>
+                        <span className="badge info">{stats.nodes} nodes · {stats.edges} edges</span>
+                    </div>
                 </div>
             </div>
 
@@ -211,9 +365,30 @@ export default function KnowledgeGraph() {
                 </div>
             </div>
 
-            {/* Layer Toggles + Controls */}
+            {/* Search + Layer Toggles + Controls */}
             <div className="card mb-2" style={{ padding: '12px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ position: 'relative', minWidth: '260px' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input
+                            className="filter-input"
+                            style={{ paddingLeft: '32px', paddingRight: search ? '30px' : '10px', width: '100%', fontSize: '0.8rem' }}
+                            placeholder="Search vendor, GSTIN, invoice, status…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && focusFirstMatch()}
+                        />
+                        {search && (
+                            <button
+                                onClick={() => setSearch('')}
+                                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}
+                                title="Clear search"
+                            >
+                                <X size={13} />
+                            </button>
+                        )}
+                    </div>
+
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {Object.entries(nodeLabels).map(([key, label]) => (
                             <button
@@ -228,12 +403,31 @@ export default function KnowledgeGraph() {
                             </button>
                         ))}
                     </div>
+
                     <div style={{ display: 'flex', gap: '4px' }}>
-                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => { if (graphRef.current) graphRef.current.zoom(graphRef.current.zoom() * 1.5, 300); }}><ZoomIn size={14} /></button>
-                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => { if (graphRef.current) graphRef.current.zoom(graphRef.current.zoom() * 0.7, 300); }}><ZoomOut size={14} /></button>
-                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => { if (graphRef.current) graphRef.current.zoomToFit(400, 40); setSelectedNode(null); }}><RotateCcw size={14} /></button>
+                        {orphanCount > 0 && (
+                            <button
+                                className={`btn ${hideOrphans ? 'btn-primary' : 'btn-secondary'}`}
+                                style={{ padding: '4px 10px', fontSize: '0.72rem', gap: '4px' }}
+                                onClick={() => setHideOrphans(v => !v)}
+                                title={`${orphanCount} node(s) have no relationships in the graph — typically vendors who have not issued an invoice yet`}
+                            >
+                                <Crosshair size={12} /> {hideOrphans ? `Show ${orphanCount} unlinked` : `Hide ${orphanCount} unlinked`}
+                            </button>
+                        )}
+                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} title="Zoom in" onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 1.5, 300)}><ZoomIn size={14} /></button>
+                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} title="Zoom out" onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 0.7, 300)}><ZoomOut size={14} /></button>
+                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} title="Reset view" onClick={() => { graphRef.current?.zoomToFit(400, 60); setSelectedNode(null); setSearch(''); }}><RotateCcw size={14} /></button>
                     </div>
                 </div>
+
+                {search && (
+                    <div style={{ marginTop: '8px', fontSize: '0.75rem', color: searchMatches?.size ? 'var(--text-secondary)' : 'var(--danger)' }}>
+                        {searchMatches?.size
+                            ? <>{searchMatches.size} match{searchMatches.size === 1 ? '' : 'es'} ringed in yellow — press Enter to jump to the first</>
+                            : 'No nodes match that search'}
+                    </div>
+                )}
             </div>
 
             {/* Graph Canvas */}
@@ -245,22 +439,30 @@ export default function KnowledgeGraph() {
                     height={dimensions.height}
                     backgroundColor="#0f172a"
                     nodeCanvasObject={paintNode}
+                    nodePointerAreaPaint={(node, color, ctx) => {
+                        // Generous hit area so small document nodes stay clickable.
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(node.x, node.y, sizeFor(node.group) + 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }}
                     linkCanvasObject={paintLink}
                     onNodeClick={handleNodeClick}
+                    onNodeHover={setHoverNode}
                     onBackgroundClick={() => setSelectedNode(null)}
                     nodeRelSize={6}
-                    linkDirectionalParticles={1}
+                    linkDirectionalParticles={focusNode ? 0 : 1}
                     linkDirectionalParticleSpeed={0.004}
                     linkDirectionalParticleWidth={1.5}
                     linkDirectionalParticleColor={(link) => edgeColors[link.type] || '#fff'}
-                    d3AlphaDecay={0.03}
-                    d3VelocityDecay={0.35}
-                    cooldownTicks={150}
-                    d3Force="charge"
-                    d3ForceStrength={-80}
-                    enableZoomInteraction={true}
-                    enablePanInteraction={true}
+                    d3AlphaDecay={0.022}
+                    d3VelocityDecay={0.32}
+                    cooldownTicks={320}
+                    onEngineStop={handleEngineStop}
+                    enableZoomInteraction
+                    enablePanInteraction
                 />
+
                 {/* Legend overlay */}
                 <div className="graph-legend">
                     <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Entity Types</div>
@@ -270,21 +472,44 @@ export default function KnowledgeGraph() {
                             <span>{label}</span>
                         </div>
                     ))}
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '8px', borderTop: '1px solid var(--border-primary)', paddingTop: '6px' }}>
-                        <div style={{ marginBottom: '2px' }}><span style={{ color: '#ef4444' }}>●</span> Red ring = flagged/high risk</div>
-                        <div>Click nodes for details</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '8px', borderTop: '1px solid var(--border-primary)', paddingTop: '6px', lineHeight: 1.6 }}>
+                        <div><span style={{ color: '#ef4444' }}>●</span> Red ring = flagged / high risk</div>
+                        <div><span style={{ color: '#facc15' }}>●</span> Yellow ring = search match</div>
+                        <div>Hover to isolate · click to inspect</div>
                     </div>
                 </div>
-            </div>
 
-            {/* Node Detail Panel */}
+                {/* Hover hint */}
+                {hoverNode && !selectedNode && (
+                    <div style={{
+                        position: 'absolute', top: '12px', left: '12px', padding: '6px 12px',
+                        background: 'rgba(15,23,42,0.9)', border: '1px solid var(--border-primary)',
+                        borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-secondary)', pointerEvents: 'none',
+                    }}>
+                        <strong style={{ color: nodeColors[hoverNode.group] }}>{hoverNode.fullName || hoverNode.label}</strong>
+                        {' · '}{nodeLabels[hoverNode.group]}
+                        {typeof hoverNode.degree === 'number' && <> · {hoverNode.degree} link{hoverNode.degree === 1 ? '' : 's'}</>}
+                    </div>
+                )}
+
+            {/* Node Detail Panel — overlaid on the canvas so it is visible the
+                moment a node is clicked, rather than below a 680px graph. */}
             {selectedNode && (
                 <motion.div
                     className="node-detail-panel"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    style={{
+                        position: 'absolute', top: '12px', right: '12px', width: '310px',
+                        maxHeight: 'calc(100% - 24px)', overflowY: 'auto', marginTop: 0,
+                        background: 'rgba(15,23,42,0.96)', backdropFilter: 'blur(6px)', zIndex: 5,
+                    }}
                 >
-                    <h4>Node: {selectedNode.label}</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <h4>{selectedNode.fullName || selectedNode.label}</h4>
+                        <button onClick={() => setSelectedNode(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }} title="Close"><X size={15} /></button>
+                    </div>
+
                     <div className="node-detail-row">
                         <span className="node-detail-label">Type</span>
                         <span className="node-detail-value">
@@ -293,10 +518,11 @@ export default function KnowledgeGraph() {
                             </span>
                         </span>
                     </div>
-                    <div className="node-detail-row">
-                        <span className="node-detail-label">ID</span>
-                        <span className="node-detail-value font-mono">{selectedNode.id}</span>
-                    </div>
+
+                    {selectedNode.invoiceId && <div className="node-detail-row">
+                        <span className="node-detail-label">Invoice</span>
+                        <span className="node-detail-value font-mono">{selectedNode.invoiceId}</span>
+                    </div>}
                     {selectedNode.gstin && <div className="node-detail-row">
                         <span className="node-detail-label">GSTIN</span>
                         <span className="node-detail-value font-mono">{selectedNode.gstin}</span>
@@ -305,7 +531,7 @@ export default function KnowledgeGraph() {
                         <span className="node-detail-label">State</span>
                         <span className="node-detail-value">{selectedNode.state}</span>
                     </div>}
-                    {selectedNode.risk !== undefined && <div className="node-detail-row">
+                    {selectedNode.risk !== undefined && selectedNode.risk !== null && <div className="node-detail-row">
                         <span className="node-detail-label">Risk Score</span>
                         <span className="node-detail-value">
                             <span className={`badge ${selectedNode.risk > 0.6 ? 'high' : selectedNode.risk > 0.3 ? 'medium' : 'low'}`}>
@@ -313,9 +539,21 @@ export default function KnowledgeGraph() {
                             </span>
                         </span>
                     </div>}
-                    {selectedNode.amount && <div className="node-detail-row">
-                        <span className="node-detail-label">Amount</span>
+                    {selectedNode.centrality !== undefined && selectedNode.centrality !== null && <div className="node-detail-row">
+                        <span className="node-detail-label">Graph Centrality</span>
+                        <span className="node-detail-value font-mono">{Number(selectedNode.centrality).toFixed(2)}</span>
+                    </div>}
+                    {selectedNode.amount ? <div className="node-detail-row">
+                        <span className="node-detail-label">Invoice Value</span>
                         <span className="node-detail-value amount">₹{selectedNode.amount.toLocaleString('en-IN')}</span>
+                    </div> : null}
+                    {selectedNode.totalTax ? <div className="node-detail-row">
+                        <span className="node-detail-label">Tax</span>
+                        <span className="node-detail-value amount">₹{selectedNode.totalTax.toLocaleString('en-IN')}</span>
+                    </div> : null}
+                    {selectedNode.hsn && <div className="node-detail-row">
+                        <span className="node-detail-label">HSN</span>
+                        <span className="node-detail-value font-mono">{selectedNode.hsn}</span>
                     </div>}
                     {selectedNode.matchStatus && <div className="node-detail-row">
                         <span className="node-detail-label">Match Status</span>
@@ -333,14 +571,49 @@ export default function KnowledgeGraph() {
                     </div>}
                     <div className="node-detail-row">
                         <span className="node-detail-label">Connections</span>
-                        <span className="node-detail-value">{filteredGraph.links.filter(l => {
-                            const sId = typeof l.source === 'object' ? l.source.id : l.source;
-                            const tId = typeof l.target === 'object' ? l.target.id : l.target;
-                            return sId === selectedNode.id || tId === selectedNode.id;
-                        }).length}</span>
+                        <span className="node-detail-value">{neighbours.length}</span>
                     </div>
+
+                    {/* The ITC-blocking case, stated plainly */}
+                    {selectedNode.group === 'invoice' && selectedNode.status === 'flagged' && (
+                        <div style={{ marginTop: '10px', padding: '8px 10px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
+                            <AlertTriangle size={14} style={{ color: 'var(--danger)', flexShrink: 0, marginTop: 1 }} />
+                            <span>
+                                {selectedNode.matchStatus === 'Missing in GSTR-1'
+                                    ? <>No <span className="font-mono">:REPORTED_IN</span> edge to GSTR-1 — the supplier never filed it, so ITC is blocked under s.16(2)(aa).</>
+                                    : <>Flagged: {selectedNode.matchStatus}.</>}
+                            </span>
+                        </div>
+                    )}
+
+                    {neighbours.length > 0 && (
+                        <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-primary)', paddingTop: '8px' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                                Connected Entities
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                {neighbours.slice(0, 14).map(n => (
+                                    <button
+                                        key={n.id}
+                                        onClick={() => handleNodeClick(n)}
+                                        className="badge"
+                                        style={{ background: nodeColors[n.group] + '1e', color: nodeColors[n.group], border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}
+                                        title={`Jump to ${n.fullName || n.label}`}
+                                    >
+                                        {n.label}
+                                    </button>
+                                ))}
+                                {neighbours.length > 14 && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center' }}>
+                                        +{neighbours.length - 14} more
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
             )}
+            </div>
         </motion.div>
     );
 }
