@@ -20,24 +20,48 @@ const chartDefaults = {
     }
 };
 
+// Model feature names -> the labels shown on the chart.
+const FEATURE_LABELS = {
+    mismatch_count: 'Past Mismatch Count',
+    total_tax_at_risk: 'Cumulative Tax at Risk',
+    filing_delay_days: 'Filing Delay (days)',
+    graph_centrality: 'Graph Centrality Score',
+    transaction_volume: 'Transaction Volume',
+    community_cluster: 'Community Cluster ID',
+    einvoice_compliance_rate: 'E-Invoice Compliance',
+    state_risk_factor: 'State Location Factor',
+};
+
 export default function VendorCompliance() {
-    const { vendors, riskFeatureImportance } = useData();
+    const { vendors, riskFeatureImportance, modelInfo } = useData();
     const [selectedVendor, setSelectedVendor] = useState(null);
+
+    // Prefer the trained model's real importances; fall back to the static list
+    // only when the API is unreachable.
+    const importances = useMemo(() => {
+        const live = modelInfo?.featureImportance;
+        if (live && Object.keys(live).length) {
+            return Object.entries(live)
+                .map(([key, value]) => ({ feature: FEATURE_LABELS[key] || key, importance: value }))
+                .sort((a, b) => b.importance - a.importance);
+        }
+        return riskFeatureImportance;
+    }, [modelInfo, riskFeatureImportance]);
 
     // Feature importance chart
     const featureImportanceData = useMemo(() => ({
-        labels: riskFeatureImportance.map(f => f.feature),
+        labels: importances.map(f => f.feature),
         datasets: [{
             label: 'Importance',
-            data: riskFeatureImportance.map(f => f.importance),
-            backgroundColor: riskFeatureImportance.map((_, i) => {
+            data: importances.map(f => f.importance),
+            backgroundColor: importances.map((_, i) => {
                 const colors = ['#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#22c55e', '#06b6d4', '#ec4899', '#6366f1'];
                 return colors[i % colors.length];
             }),
             borderRadius: 6,
             borderSkipped: false,
         }],
-    }), [riskFeatureImportance]);
+    }), [importances]);
 
     const riskBuckets = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
     const riskHistogram = useMemo(() => riskBuckets.slice(0, -1).map((low, i) => {
@@ -96,14 +120,22 @@ export default function VendorCompliance() {
         },
     };
 
-    // Model performance metrics
-    const modelMetrics = {
-        accuracy: 98.3,
-        precision: 96.7,
-        recall: 94.2,
-        f1Score: 95.4,
-        auc: 0.987,
-    };
+    // Real held-out metrics from the trained model, reported by GET /api/model/info.
+    // The weighted-average precision/recall/F1 come from its classification report.
+    const modelMetrics = useMemo(() => {
+        if (!modelInfo?.available) return null;
+        const avg = modelInfo.classificationReport?.['weighted avg'];
+        return {
+            accuracy: modelInfo.accuracy * 100,
+            ...(avg ? {
+                precision: avg.precision * 100,
+                recall: avg.recall * 100,
+                f1Score: avg['f1-score'] * 100,
+            } : {}),
+            auc: modelInfo.aucRoc,
+            crossVal: modelInfo.crossValMean * 100,
+        };
+    }, [modelInfo]);
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
@@ -117,18 +149,26 @@ export default function VendorCompliance() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <Brain size={20} style={{ color: 'var(--accent-primary)' }} />
-                        <span style={{ fontWeight: 600 }}>RandomForest Classifier</span>
-                        <span className="badge success">Trained</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Last trained: 2 days ago</span>
+                        <span style={{ fontWeight: 600 }}>{modelInfo?.available ? modelInfo.source : 'Risk Model'}</span>
+                        <span className={`badge ${modelInfo?.available ? 'success' : 'warning'}`}>
+                            {modelInfo?.available ? 'Trained' : 'Heuristic fallback'}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {modelInfo?.available
+                                ? `${modelInfo.nEstimators} trees · depth ${modelInfo.maxDepth} · held out ${modelInfo.nTest} of ${modelInfo.nTrain + modelInfo.nTest}`
+                                : 'Start the backend for model-scored predictions'}
+                        </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '20px', fontSize: '0.8rem' }}>
-                        {Object.entries(modelMetrics).map(([key, val]) => (
-                            <div key={key} style={{ textAlign: 'center' }}>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
-                                <div style={{ fontWeight: 700, color: val > 95 ? 'var(--success)' : 'var(--warning)', fontFamily: 'JetBrains Mono', fontSize: '1rem' }}>{typeof val === 'number' && val < 1 ? val.toFixed(3) : val + '%'}</div>
-                            </div>
-                        ))}
-                    </div>
+                    {modelMetrics && (
+                        <div style={{ display: 'flex', gap: '20px', fontSize: '0.8rem' }}>
+                            {Object.entries(modelMetrics).map(([key, val]) => (
+                                <div key={key} style={{ textAlign: 'center' }}>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase' }}>{key.replace(/([A-Z])/g, ' $1')}</div>
+                                    <div style={{ fontWeight: 700, color: val > 70 ? 'var(--success)' : 'var(--warning)', fontFamily: 'JetBrains Mono', fontSize: '1rem' }}>{val < 1 ? val.toFixed(3) : val.toFixed(1) + '%'}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -136,7 +176,11 @@ export default function VendorCompliance() {
             <div className="charts-grid">
                 <div className="chart-card">
                     <h3>Feature Importance</h3>
-                    <div className="chart-subtitle">Key predictors in the vendor risk model</div>
+                    <div className="chart-subtitle">
+                        {modelInfo?.featureImportance && Object.keys(modelInfo.featureImportance).length
+                            ? 'Gini importance from the trained RandomForest'
+                            : 'Key predictors in the vendor risk model (static — API unreachable)'}
+                    </div>
                     <div className="chart-container">
                         <Bar data={featureImportanceData} options={{ ...chartDefaults, indexAxis: 'y', plugins: { ...chartDefaults.plugins, legend: { display: false } } }} />
                     </div>

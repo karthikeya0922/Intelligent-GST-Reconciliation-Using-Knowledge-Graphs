@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Download, AlertCircle, CheckCircle, XCircle, FileWarning } from 'lucide-react';
+import { Search, Filter, Download, AlertCircle, CheckCircle, XCircle, FileWarning, Play, RefreshCw, Network } from 'lucide-react';
 import { useData } from '../context/DataContext';
 
 const statusIcons = {
@@ -17,7 +17,10 @@ function formatINR(num) {
 }
 
 export default function Reconciliation() {
-    const { invoices } = useData();
+    const { invoices, graphStatus, syncGraph, runReconciliation } = useData();
+    const [engineResult, setEngineResult] = useState(null);
+    const [engineBusy, setEngineBusy] = useState(false);
+    const [engineError, setEngineError] = useState('');
     const [periodFilter, setPeriodFilter] = useState('all');
     const [riskFilter, setRiskFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
@@ -47,6 +50,27 @@ export default function Reconciliation() {
     const periods = [...new Set(invoices.map(i => i.period))];
     const types = [...new Set(invoices.map(i => i.matchStatus))];
 
+    const handleRunEngine = async () => {
+        setEngineBusy(true);
+        setEngineError('');
+        const result = await runReconciliation(periodFilter);
+        if (result.error) {
+            setEngineError(result.error);
+            setEngineResult(null);
+        } else {
+            setEngineResult(result);
+        }
+        setEngineBusy(false);
+    };
+
+    const handleSyncGraph = async () => {
+        setEngineBusy(true);
+        setEngineError('');
+        const result = await syncGraph();
+        if (!result.success) setEngineError(result.error || 'Graph sync failed');
+        setEngineBusy(false);
+    };
+
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
             <div className="page-header">
@@ -68,6 +92,69 @@ export default function Reconciliation() {
                     <div className="kpi-label">High Risk Cases</div>
                     <div className="kpi-value orange">{mismatchSummary.highCount}</div>
                 </div>
+            </div>
+
+            {/* Graph reconciliation engine */}
+            <div className="card" style={{ marginTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <Network size={16} /> Graph Traversal Engine
+                        </h3>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                            {graphStatus?.connected
+                                ? `Neo4j connected — ${graphStatus.relationships ?? 0} relationships projected. Reconciliation runs as Cypher traversal.`
+                                : `Neo4j offline (${graphStatus?.reason || 'not connected'}). Falls back to MongoDB label matching.`}
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn" onClick={handleSyncGraph} disabled={engineBusy}>
+                            <RefreshCw size={14} /> Sync Graph
+                        </button>
+                        <button className="btn btn-primary" onClick={handleRunEngine} disabled={engineBusy}>
+                            <Play size={14} /> {engineBusy ? 'Running…' : 'Run Reconciliation'}
+                        </button>
+                    </div>
+                </div>
+
+                {engineError && (
+                    <p style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '12px' }}>{engineError}</p>
+                )}
+
+                {engineResult && (
+                    <div style={{ marginTop: '16px' }}>
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '12px' }}>
+                            <span className={`badge ${engineResult.engine === 'neo4j-graph-traversal' ? 'compliant' : 'review'}`}>
+                                engine: {engineResult.engine}
+                            </span>
+                            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                {engineResult.total_mismatches} mismatches · {formatINR(engineResult.total_tax_at_risk || 0)} at risk
+                            </span>
+                        </div>
+                        <div className="audit-graph-path" style={{ fontSize: '0.75rem' }}>
+                            {Object.entries(engineResult.by_type || {}).map(([k, v]) => `${k}: ${v}`).join('  ·  ') || 'No mismatches found'}
+                        </div>
+                        {engineResult.mismatches?.some(m => m.detection) && (
+                            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                                Detection: <strong>structural</strong> findings are derived from missing graph edges;
+                                <strong> label-carried</strong> findings come from the upstream match status.
+                            </p>
+                        )}
+
+                        {/* The engine and the KPI cards can legitimately disagree — say why,
+                            rather than leaving two contradictory-looking totals on screen. */}
+                        {engineResult.total_mismatches > mismatchSummary.total && (
+                            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '8px', padding: '8px 10px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '6px' }}>
+                                The graph found <strong>{engineResult.total_mismatches - mismatchSummary.total} more</strong> than
+                                the {mismatchSummary.total} stored above. The cards count invoices whose saved status is
+                                not “Matched”; the traversal additionally detects <strong>structural</strong> violations —
+                                an invoice over ₹50,000 with no <span className="font-mono">:COVERS_SHIPMENT</span> edge to an
+                                e-Way Bill, or no <span className="font-mono">:ELECTRONIC_VERSION</span> edge to an e-Invoice —
+                                which no stored label records.
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Filters */}

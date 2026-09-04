@@ -1,5 +1,20 @@
+# API
 fastapi
 uvicorn
-pymongo[srv]
-python-dotenv
 pydantic
+python-dotenv
+
+# Data store
+pymongo[srv]
+
+# Authentication
+bcrypt>=4.0
+
+# Knowledge graph (optional at runtime - the API degrades gracefully without it)
+neo4j>=5.20
+
+# Vendor compliance risk model
+scikit-learn>=1.5
+pandas>=2.2.2,<3
+numpy>=2.0
+joblib

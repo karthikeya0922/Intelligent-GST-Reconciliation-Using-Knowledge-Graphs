@@ -12,6 +12,7 @@ export default function Settings() {
     const [profileName, setProfileName] = useState(user?.name || '');
     const [profileEmail, setProfileEmail] = useState(user?.email || '');
     const [saved, setSaved] = useState(false);
+    const [profileError, setProfileError] = useState('');
 
     // Settings state
     const [settings, setSettings] = useState(() => {
@@ -31,8 +32,13 @@ export default function Settings() {
         setTimeout(() => setSaved(false), 2000);
     };
 
-    const saveProfile = () => {
-        updateProfile({ name: profileName, email: profileEmail });
+    const saveProfile = async () => {
+        const result = await updateProfile({ name: profileName, email: profileEmail });
+        if (!result.success) {
+            setProfileError(result.error);
+            return;
+        }
+        setProfileError('');
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
@@ -145,6 +151,11 @@ export default function Settings() {
                                     <label>Email</label>
                                     <input className="filter-input" style={{ width: '100%' }} value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
                                 </div>
+                                {profileError && (
+                                    <p style={{ color: 'var(--danger)', fontSize: '0.82rem', marginTop: '12px' }}>
+                                        {profileError}
+                                    </p>
+                                )}
                                 <button className="btn btn-primary mt-2" onClick={saveProfile}>
                                     {saved ? <><Check size={16} /> Updated!</> : 'Update Profile'}
                                 </button>

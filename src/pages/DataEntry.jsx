@@ -27,10 +27,10 @@ const STATES = ['Andhra Pradesh', 'Delhi', 'Gujarat', 'Haryana', 'Karnataka', 'K
 
 const emptyVendor = { name: '', gstin: '', state: 'Karnataka', totalTransactions: 100, missedFilings: 0, avgDaysLate: 0 };
 const emptyInvoice = { vendorId: '', date: '2025-09-15', taxableAmount: 100000, cgst: 9000, sgst: 9000, igst: 0, hsn: '7208', period: '2025-09', gstr1Reported: true, gstr2bReported: true, eInvoice: true, eWayBill: true };
-const emptyPredict = { missedFilings: 0, avgDaysLate: 0, totalTransactions: 100 };
+const emptyPredict = { missedFilings: 0, avgDaysLate: 0, totalTransactions: 100, state: 'Karnataka' };
 
 export default function DataEntry() {
-    const { vendors, addVendor, addInvoice, predictVendorRisk } = useData();
+    const { vendors, addVendor, addInvoice, predictVendorRisk, modelInfo } = useData();
     const [activeTab, setActiveTab] = useState('invoice');
     const [vendorForm, setVendorForm] = useState(emptyVendor);
     const [invoiceForm, setInvoiceForm] = useState(emptyInvoice);
@@ -76,15 +76,20 @@ export default function DataEntry() {
         setSubmitting(false);
     };
 
-    const handlePredict = (e) => {
+    const handlePredict = async (e) => {
         e.preventDefault();
-        const prediction = predictVendorRisk({
-            missedFilings: parseInt(predictForm.missedFilings),
-            avgDaysLate: parseInt(predictForm.avgDaysLate),
-            totalTransactions: parseInt(predictForm.totalTransactions),
-        });
-        setResult({ type: 'prediction', data: prediction });
-        setShowResult(true);
+        setSubmitting(true);
+        try {
+            const prediction = await predictVendorRisk({
+                missedFilings: parseInt(predictForm.missedFilings),
+                avgDaysLate: parseInt(predictForm.avgDaysLate),
+                totalTransactions: parseInt(predictForm.totalTransactions),
+                state: predictForm.state,
+            });
+            setResult({ type: 'prediction', data: prediction });
+            setShowResult(true);
+        } catch (err) { console.error(err); }
+        setSubmitting(false);
     };
 
     const tabs = [
@@ -266,7 +271,9 @@ export default function DataEntry() {
                                     <Brain size={18} style={{ color: 'var(--accent-primary)' }} /> Predict Vendor Compliance Risk
                                 </h3>
                                 <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                                    Enter vendor features to predict risk using the RandomForest model (client-side inference)
+                                    {modelInfo?.available
+                                        ? `Scored by a trained ${modelInfo.source} served from the API — held-out accuracy ${(modelInfo.accuracy * 100).toFixed(1)}%, AUC ${modelInfo.aucRoc?.toFixed(3)}.`
+                                        : 'Backend model unreachable — predictions will use the local weighted-sum heuristic.'}
                                 </p>
                                 <form onSubmit={handlePredict}>
                                     <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -299,8 +306,15 @@ export default function DataEntry() {
                                         </div>
                                     </div>
 
-                                    <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                                        <Brain size={16} /> Run Prediction
+                                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                                        <label>State (drives the state_risk_factor feature)</label>
+                                        <select className="filter-select" style={{ width: '100%' }} value={predictForm.state} onChange={(e) => setPredictForm(p => ({ ...p, state: e.target.value }))}>
+                                            {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
+                                        <Brain size={16} /> {submitting ? 'Scoring…' : 'Run Prediction'}
                                     </button>
                                 </form>
                             </motion.div>
@@ -415,28 +429,55 @@ export default function DataEntry() {
                                                 {result.data.status}
                                             </span>
 
-                                            {/* Feature breakdown */}
-                                            <div style={{ marginTop: '24px', textAlign: 'left' }}>
-                                                <h4 style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '12px' }}>Feature Analysis</h4>
-                                                {[
-                                                    { label: 'Missed Filings Impact', value: Math.min(parseInt(predictForm.missedFilings) / 6, 1), weight: '28%' },
-                                                    { label: 'Filing Delay Impact', value: Math.min(parseInt(predictForm.avgDaysLate) / 20, 1), weight: '22%' },
-                                                    { label: 'Low Volume Risk', value: parseInt(predictForm.totalTransactions) < 50 ? 0.8 : parseInt(predictForm.totalTransactions) < 100 ? 0.4 : 0.1, weight: '12%' },
-                                                ].map((f, i) => (
-                                                    <div key={i} style={{ marginBottom: '12px' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
-                                                            <span style={{ color: 'var(--text-secondary)' }}>{f.label}</span>
-                                                            <span className="mono" style={{ color: f.value > 0.5 ? 'var(--danger)' : 'var(--text-muted)' }}>{(f.value * 100).toFixed(0)}% (weight: {f.weight})</span>
+                                            {/* Feature contributions, straight from the model */}
+                                            {result.data.contributions ? (
+                                                <div style={{ marginTop: '24px', textAlign: 'left' }}>
+                                                    <h4 style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                                                        Feature Importance (from the trained model)
+                                                    </h4>
+                                                    {result.data.contributions.slice(0, 5).map((f, i) => (
+                                                        <div key={i} style={{ marginBottom: '12px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
+                                                                <span style={{ color: 'var(--text-secondary)' }}>{f.feature.replace(/_/g, ' ')}</span>
+                                                                <span className="mono" style={{ color: 'var(--text-muted)' }}>
+                                                                    value {typeof f.value === 'number' && f.value > 1000 ? f.value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : Number(f.value).toFixed(2)} · weight {(f.importance * 100).toFixed(1)}%
+                                                                </span>
+                                                            </div>
+                                                            <div className="risk-bar">
+                                                                <div style={{ height: '100%', borderRadius: '3px', width: `${Math.min(f.importance * 400, 100)}%`, background: 'var(--accent-primary)', transition: 'width 0.5s ease' }}></div>
+                                                            </div>
                                                         </div>
-                                                        <div className="risk-bar">
-                                                            <div style={{ height: '100%', borderRadius: '3px', width: `${f.value * 100}%`, background: f.value > 0.6 ? 'var(--danger)' : f.value > 0.3 ? 'var(--warning)' : 'var(--success)', transition: 'width 0.5s ease' }}></div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div style={{ marginTop: '24px', textAlign: 'left' }}>
+                                                    <h4 style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '12px' }}>Heuristic Breakdown</h4>
+                                                    {[
+                                                        { label: 'Missed Filings Impact', value: Math.min(parseInt(predictForm.missedFilings) / 6, 1), weight: '34%' },
+                                                        { label: 'Filing Delay Impact', value: Math.min(parseInt(predictForm.avgDaysLate) / 20, 1), weight: '28%' },
+                                                        { label: 'Low Volume Risk', value: parseInt(predictForm.totalTransactions) < 50 ? 0.8 : parseInt(predictForm.totalTransactions) < 100 ? 0.4 : 0.1, weight: '18%' },
+                                                    ].map((f, i) => (
+                                                        <div key={i} style={{ marginBottom: '12px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
+                                                                <span style={{ color: 'var(--text-secondary)' }}>{f.label}</span>
+                                                                <span className="mono" style={{ color: f.value > 0.5 ? 'var(--danger)' : 'var(--text-muted)' }}>{(f.value * 100).toFixed(0)}% (weight: {f.weight})</span>
+                                                            </div>
+                                                            <div className="risk-bar">
+                                                                <div style={{ height: '100%', borderRadius: '3px', width: `${f.value * 100}%`, background: f.value > 0.6 ? 'var(--danger)' : f.value > 0.3 ? 'var(--warning)' : 'var(--success)', transition: 'width 0.5s ease' }}></div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                    ))}
+                                                </div>
+                                            )}
 
                                             <div className="audit-graph-path mt-2" style={{ fontSize: '0.72rem', textAlign: 'left' }}>
-                                                Model: RandomForestClassifier(n_estimators=100) · Features: mismatch_count, filing_delay, graph_centrality, tx_volume · Accuracy: 98.3%
+                                                {result.data.source === 'heuristic' ? (
+                                                    <>Scored by the weighted-sum fallback — the ML API was unreachable. Start the backend for RandomForest scoring.</>
+                                                ) : modelInfo?.available ? (
+                                                    <>Model: {modelInfo.source}(n_estimators={modelInfo.nEstimators}, max_depth={modelInfo.maxDepth}) · Held-out accuracy: {(modelInfo.accuracy * 100).toFixed(1)}% · AUC: {modelInfo.aucRoc?.toFixed(3)} · 5-fold CV: {(modelInfo.crossValMean * 100).toFixed(1)}% · Trained on {modelInfo.trainingData}</>
+                                                ) : (
+                                                    <>Model: {result.data.source}</>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

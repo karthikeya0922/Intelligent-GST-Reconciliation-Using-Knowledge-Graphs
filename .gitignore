@@ -28,6 +28,10 @@ __pycache__/
 venv/
 .venv/
 
+# Trained model artifacts — regenerated on first backend boot
+backend/vendor_risk_model.pkl
+backend/vendor_risk_metrics.json
+
 # Logs
 *.log
 npm-debug.log*
