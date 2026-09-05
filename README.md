@@ -204,11 +204,16 @@ Intelligent-GST-Reconciliation-Using-Knowledge-Graphs/
 │   └── main.jsx              # React entry point
 │
 ├── docker-compose.yml        # Neo4j + MongoDB for local development
+├── eslint.config.js          # ESLint configuration
+├── GST_ReconcileAI_Comprehensive_Report.pdf # Comprehensive project report
 ├── index.html                # HTML entry point
+├── package-lock.json         # Locked npm dependencies
 ├── package.json              # Node.js dependencies & scripts
+├── run_all.ps1               # PowerShell launcher script
+├── start_app.bat             # Batch launcher script
+├── total.md                  # Comprehensive technical documentation
 ├── vite.config.js            # Vite bundler configuration
-├── .gitignore                # Git exclusions (node_modules, .env)
-└── README.md                 # This file
+└── README.md                 # Project documentation
 ```
 
 ---
@@ -316,7 +321,7 @@ For MongoDB Atlas instead of local Docker:
 MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
 ```
 
-> ⚠️ Never commit this file to Git — it is already in `.gitignore`.
+> ⚠️ Never commit private credentials or secrets to Git.
 
 ---
 
