@@ -327,8 +327,37 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrit
 
 ## ▶️ Running the Application
 
-### Start the Backend (Terminal 1)
+### ⚡ Quick Start (Copy & Paste Terminal Command)
 
+Copy and paste the appropriate command below into your terminal from the root folder to install dependencies and run the entire application at once:
+
+#### 🔹 Windows PowerShell
+```powershell
+npm install; cd backend; pip install -r requirements.txt; Start-Process python -ArgumentList "main.py"; cd ..; npm run dev
+```
+
+#### 🔹 Windows Command Prompt (CMD)
+```cmd
+npm install && start cmd /k "cd backend && pip install -r requirements.txt && python main.py" && npm run dev
+```
+
+#### 🔹 macOS / Linux / Git Bash
+```bash
+npm install && (cd backend && pip install -r requirements.txt && python main.py &) && npm run dev
+```
+
+#### 🔹 Or Run via Script
+```powershell
+.\run_all.ps1
+```
+
+---
+
+### Step-by-Step Manual Execution
+
+If you prefer to start services individually in separate terminals:
+
+#### Terminal 1 — Start Backend
 ```bash
 cd backend
 python main.py

@@ -1,5 +1,5 @@
 # Powershell Launch Script for GST ReconcileAI
-$ProjectRoot = "c:\Users\karth\OneDrive\Desktop\gst-quadric it\Intelligent-GST-Reconciliation-Using-Knowledge-Graphs"
+$ProjectRoot = $PSScriptRoot
 
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host "⚡ Starting GST ReconcileAI Full Stack Environment" -ForegroundColor Cyan
