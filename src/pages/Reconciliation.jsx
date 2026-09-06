@@ -79,7 +79,7 @@ export default function Reconciliation() {
             </div>
 
             {/* Summary Cards */}
-            <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '28px' }}>
                 <div className="kpi-card red">
                     <div className="kpi-label">Mismatches Found</div>
                     <div className="kpi-value red">{mismatchSummary.total}</div>
@@ -95,7 +95,7 @@ export default function Reconciliation() {
             </div>
 
             {/* Graph reconciliation engine */}
-            <div className="card" style={{ marginTop: '16px' }}>
+            <div className="card" style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                     <div>
                         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -158,7 +158,7 @@ export default function Reconciliation() {
             </div>
 
             {/* Filters */}
-            <div className="filter-bar">
+            <div className="filter-bar" style={{ marginTop: '4px', marginBottom: '24px' }}>
                 <div style={{ position: 'relative', flex: '1', maxWidth: '300px' }}>
                     <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
@@ -186,23 +186,37 @@ export default function Reconciliation() {
             </div>
 
             {/* Table */}
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: '0' }}>
                 <div className="data-table-container" style={{ maxHeight: '520px', overflowY: 'auto' }}>
-                    <table className="data-table">
+                    <table className="data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                        <colgroup>
+                            <col style={{ width: '10%' }} />   {/* Invoice ID */}
+                            <col style={{ width: '11%' }} />   {/* Vendor */}
+                            <col style={{ width: '11%' }} />   {/* GSTIN */}
+                            <col style={{ width: '8%' }} />    {/* Date */}
+                            <col style={{ width: '9%' }} />    {/* Taxable Amt */}
+                            <col style={{ width: '7%' }} />    {/* Tax */}
+                            <col style={{ width: '5%' }} />    {/* HSN */}
+                            <col style={{ width: '5%' }} />    {/* GSTR-1 */}
+                            <col style={{ width: '5%' }} />    {/* GSTR-2B */}
+                            <col style={{ width: '6%' }} />    {/* e-Invoice */}
+                            <col style={{ width: '15%' }} />   {/* Status */}
+                            <col style={{ width: '8%' }} />    {/* Risk */}
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>Invoice ID</th>
                                 <th>Vendor</th>
                                 <th>GSTIN</th>
                                 <th>Date</th>
-                                <th>Taxable Amt</th>
-                                <th>Tax</th>
-                                <th>HSN</th>
-                                <th>GSTR-1</th>
-                                <th>GSTR-2B</th>
-                                <th>e-Invoice</th>
+                                <th style={{ textAlign: 'right' }}>Taxable Amt</th>
+                                <th style={{ textAlign: 'right' }}>Tax</th>
+                                <th style={{ textAlign: 'center' }}>HSN</th>
+                                <th style={{ textAlign: 'center' }}>GSTR-1</th>
+                                <th style={{ textAlign: 'center' }}>GSTR-2B</th>
+                                <th style={{ textAlign: 'center' }}>e-Invoice</th>
                                 <th>Status</th>
-                                <th>Risk</th>
+                                <th style={{ textAlign: 'center' }}>Risk</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -212,23 +226,23 @@ export default function Reconciliation() {
                                     onClick={() => setSelectedInvoice(inv)}
                                     style={{ cursor: 'pointer', background: selectedInvoice?.id === inv.id ? 'rgba(245,158,11,0.05)' : 'transparent' }}
                                 >
-                                    <td className="mono" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{inv.id}</td>
-                                    <td className="truncate" style={{ maxWidth: '140px' }}>{inv.vendorName}</td>
-                                    <td className="mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{inv.gstin}</td>
+                                    <td className="mono" style={{ color: 'var(--accent-primary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{inv.id}</td>
+                                    <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.vendorName}</td>
+                                    <td className="mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inv.gstin}</td>
                                     <td>{inv.date}</td>
-                                    <td className="amount">{formatINR(inv.taxableAmount)}</td>
-                                    <td className="amount">{formatINR(inv.totalTax)}</td>
-                                    <td className="mono">{inv.hsn}</td>
-                                    <td>{inv.gstr1Reported ? <span style={{ color: 'var(--success)' }}>✓</span> : <span style={{ color: 'var(--danger)' }}>✗</span>}</td>
-                                    <td>{inv.gstr2bReported ? <span style={{ color: 'var(--success)' }}>✓</span> : <span style={{ color: 'var(--danger)' }}>✗</span>}</td>
-                                    <td>{inv.eInvoice ? <span style={{ color: 'var(--success)' }}>✓</span> : <span style={{ color: 'var(--danger)' }}>✗</span>}</td>
+                                    <td className="amount" style={{ textAlign: 'right' }}>{formatINR(inv.taxableAmount)}</td>
+                                    <td className="amount" style={{ textAlign: 'right' }}>{formatINR(inv.totalTax)}</td>
+                                    <td className="mono" style={{ textAlign: 'center' }}>{inv.hsn}</td>
+                                    <td style={{ textAlign: 'center' }}>{inv.gstr1Reported ? <span style={{ color: 'var(--success)' }}>✓</span> : <span style={{ color: 'var(--danger)' }}>✗</span>}</td>
+                                    <td style={{ textAlign: 'center' }}>{inv.gstr2bReported ? <span style={{ color: 'var(--success)' }}>✓</span> : <span style={{ color: 'var(--danger)' }}>✗</span>}</td>
+                                    <td style={{ textAlign: 'center' }}>{inv.eInvoice ? <span style={{ color: 'var(--success)' }}>✓</span> : <span style={{ color: 'var(--danger)' }}>✗</span>}</td>
                                     <td>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: inv.matchStatus === 'Matched' ? 'var(--success)' : 'var(--warning)' }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', whiteSpace: 'nowrap', color: inv.matchStatus === 'Matched' ? 'var(--success)' : 'var(--warning)' }}>
                                             {statusIcons[inv.matchStatus]}
                                             {inv.matchStatus}
                                         </span>
                                     </td>
-                                    <td><span className={`badge ${inv.riskLevel.toLowerCase()}`}>{inv.riskLevel}</span></td>
+                                    <td style={{ textAlign: 'center' }}><span className={`badge ${inv.riskLevel.toLowerCase()}`}>{inv.riskLevel}</span></td>
                                 </tr>
                             ))}
                         </tbody>
