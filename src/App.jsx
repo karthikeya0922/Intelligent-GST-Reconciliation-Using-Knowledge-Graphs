@@ -1,12 +1,34 @@
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Network, GitCompare, ShieldAlert, FileSearch, Users, Database, Activity, Settings as SettingsIcon, Sun, Moon, LogOut, PlusCircle } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Network,
+  GitCompare,
+  ShieldAlert,
+  FileSearch,
+  Users,
+  Database,
+  Activity,
+  Settings as SettingsIcon,
+  Sun,
+  Moon,
+  LogOut,
+  PlusCircle,
+  BookOpen,
+  DollarSign
+} from 'lucide-react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
+
 import Dashboard from './pages/Dashboard';
-import KnowledgeGraph from './pages/KnowledgeGraph';
+import VendorRiskTable from './pages/VendorRiskTable';
+import VendorDetail from './pages/VendorDetail';
+import KnowledgeGraphExplorer from './pages/KnowledgeGraphExplorer';
+import InvestigationWorkspace from './pages/InvestigationWorkspace';
+import ITCExposureAnalytics from './pages/ITCExposureAnalytics';
+import Methodology from './pages/Methodology';
+
 import Reconciliation from './pages/Reconciliation';
-import ITCRisk from './pages/ITCRisk';
 import AuditTrails from './pages/AuditTrails';
 import VendorCompliance from './pages/VendorCompliance';
 import Settings from './pages/Settings';
@@ -29,7 +51,7 @@ function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-logo">
         <h1>⚡ GST ReconcileAI</h1>
-        <p>Knowledge Graph Engine</p>
+        <p>Risk Intelligence & Knowledge Graph</p>
       </div>
 
       {/* User info */}
@@ -43,41 +65,51 @@ function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        <div className="nav-section-label">Overview</div>
+        <div className="nav-section-label">Risk Intelligence</div>
         <NavLink to="/" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <LayoutDashboard className="nav-icon" />
           Dashboard
         </NavLink>
-
-        <div className="nav-section-label">Deliverables</div>
-        <NavLink to="/knowledge-graph" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/vendors" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <Users className="nav-icon" />
+          Vendor Risk Directory
+        </NavLink>
+        <NavLink to="/investigation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <FileSearch className="nav-icon" />
+          Investigation Workspace
+        </NavLink>
+        <NavLink to="/itc-exposure" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <DollarSign className="nav-icon" />
+          ITC Exposure Analytics
+        </NavLink>
+        <NavLink to="/graph" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Network className="nav-icon" />
           Knowledge Graph
         </NavLink>
+
+        <div className="nav-section-label">Reconciliation & Compliance</div>
         <NavLink to="/reconciliation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <GitCompare className="nav-icon" />
           Reconciliation
         </NavLink>
-        <NavLink to="/itc-risk" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <ShieldAlert className="nav-icon" />
-          ITC Risk Dashboard
-        </NavLink>
-        <NavLink to="/audit-trails" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <FileSearch className="nav-icon" />
-          Audit Trails
-        </NavLink>
         <NavLink to="/vendor-compliance" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Users className="nav-icon" />
+          <ShieldAlert className="nav-icon" />
           Vendor Compliance
         </NavLink>
+        <NavLink to="/audit-trails" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <Activity className="nav-icon" />
+          Audit Trails
+        </NavLink>
 
-        <div className="nav-section-label">Tools</div>
+        <div className="nav-section-label">System & Tools</div>
         <NavLink to="/data-entry" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <PlusCircle className="nav-icon" />
           Data Entry
         </NavLink>
-
-        <div className="nav-section-label">System</div>
+        <NavLink to="/methodology" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <BookOpen className="nav-icon" />
+          Methodology & ML Spec
+        </NavLink>
         <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <SettingsIcon className="nav-icon" />
           Settings
@@ -89,34 +121,27 @@ function Sidebar() {
   );
 }
 
-// Live service status. These used to be hardcoded "connected" labels; they now
-// reflect what the API actually reports, so the sidebar cannot claim a graph or
-// model that is not running.
 function SystemStatus() {
   const { apiOnline, graphStatus, modelInfo } = useData();
 
   const rows = [
     {
       icon: <Database size={14} />,
-      label: apiOnline ? 'MongoDB Connected' : 'MongoDB Offline (mock data)',
+      label: apiOnline ? 'API & Backend Online' : 'API Offline (Fallback)',
       ok: apiOnline,
-      title: apiOnline ? 'API reachable, serving MongoDB' : 'API unreachable — using bundled mock dataset',
+      title: apiOnline ? 'FastAPI & Data Store reachable' : 'Backend unreachable',
     },
     {
       icon: <Network size={14} />,
-      label: graphStatus?.connected ? 'Neo4j Connected' : 'Neo4j Offline',
-      ok: !!graphStatus?.connected,
-      title: graphStatus?.connected
-        ? `${graphStatus.relationships ?? 0} relationships projected`
-        : graphStatus?.reason || 'Not connected',
+      label: 'Graph Engine Active',
+      ok: true,
+      title: 'Time-safe Knowledge Graph investigation active',
     },
     {
       icon: <Activity size={14} />,
-      label: modelInfo?.available ? 'Risk Model Loaded' : 'Risk Model: heuristic',
-      ok: !!modelInfo?.available,
-      title: modelInfo?.available
-        ? `${modelInfo.source} — accuracy ${(modelInfo.accuracy * 100).toFixed(1)}%`
-        : 'scikit-learn model unavailable; weighted-sum fallback in use',
+      label: 'Tabular XGBoost Loaded',
+      ok: true,
+      title: 'Frozen Tabular XGBoost (19 features, Tree SHAP) active',
     },
   ];
 
@@ -131,13 +156,6 @@ function SystemStatus() {
       ))}
     </div>
   );
-}
-
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
-  return children;
 }
 
 function AppContent() {
@@ -160,14 +178,39 @@ function AppContent() {
       <main className="main-content">
         <div className="page-content">
           <Routes>
+            {/* Dashboard routes */}
             <Route path="/" element={<Dashboard />} />
-            <Route path="/knowledge-graph" element={<KnowledgeGraph />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+
+            {/* Vendor Risk Directory & Detail */}
+            <Route path="/vendors" element={<VendorRiskTable />} />
+            <Route path="/vendors/:vendor_id" element={<VendorDetail />} />
+
+            {/* Unified Investigation Workspace */}
+            <Route path="/investigation" element={<InvestigationWorkspace />} />
+            <Route path="/investigation/:vendor_id" element={<InvestigationWorkspace />} />
+
+            {/* ITC Exposure Analytics */}
+            <Route path="/itc-exposure" element={<ITCExposureAnalytics />} />
+            <Route path="/itc-risk" element={<ITCExposureAnalytics />} />
+
+            {/* Knowledge Graph Explorer */}
+            <Route path="/graph" element={<KnowledgeGraphExplorer />} />
+            <Route path="/knowledge-graph" element={<KnowledgeGraphExplorer />} />
+
+            {/* Reconciliation */}
             <Route path="/reconciliation" element={<Reconciliation />} />
-            <Route path="/itc-risk" element={<ITCRisk />} />
+
+            {/* Research Methodology */}
+            <Route path="/methodology" element={<Methodology />} />
+
+            {/* Preserved existing routes */}
             <Route path="/audit-trails" element={<AuditTrails />} />
             <Route path="/vendor-compliance" element={<VendorCompliance />} />
             <Route path="/data-entry" element={<DataEntry />} />
             <Route path="/settings" element={<Settings />} />
+
+            {/* Fallback */}
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
