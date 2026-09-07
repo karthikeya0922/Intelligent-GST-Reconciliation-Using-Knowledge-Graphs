@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "seed": 42,
+    "vendor_count": 10,
+    "invoice_count": 93,
+    "filing_count": 30,
+    "months_count": 3
+  },
+  "vendor_sample_count": 10,
+  "invoice_sample_count": 93,
+  "anomalies_injected": 6
+}

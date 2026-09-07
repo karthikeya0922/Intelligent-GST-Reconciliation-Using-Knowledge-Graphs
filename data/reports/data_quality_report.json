@@ -1,0 +1,75 @@
+{
+  "pipeline_summary": {
+    "execution_timestamp": "2026-09-07T14:55:50.690055",
+    "duration_seconds": 9.82,
+    "deterministic_seed": 42,
+    "total_vendors": 2015,
+    "total_invoices": 168213,
+    "public_invoices": 50,
+    "synthetic_invoices": 168163,
+    "tax_periods_count": 24,
+    "feature_rows": 46345
+  },
+  "behavioral_profiles": {
+    "A": 1119,
+    "E": 101,
+    "B": 298,
+    "D": 184,
+    "C": 160,
+    "F": 49,
+    "G": 46,
+    "H": 43,
+    "PUBLIC": 15
+  },
+  "anomalies_injected": {
+    "MISSING_GSTR1": 3609,
+    "MISSING_GSTR3B": 3837,
+    "LATE_FILING": 9884,
+    "MISSING_EWAY_BILL": 11136,
+    "TAX_MISMATCH": 13027,
+    "MISSING_EINVOICE": 14898,
+    "TAXABLE_VALUE_MISMATCH": 8283,
+    "DUPLICATE_INVOICE": 1059,
+    "NEAR_DUPLICATE_INVOICE": 1085
+  },
+  "target_label_distribution": {
+    "Low": 34218,
+    "Medium": 7983,
+    "High": 4144
+  },
+  "temporal_splits": {
+    "train": {
+      "row_count": 30225,
+      "distribution": {
+        "Low": 22413,
+        "Medium": 5087,
+        "High": 2725
+      }
+    },
+    "validation": {
+      "row_count": 8060,
+      "distribution": {
+        "Low": 5925,
+        "Medium": 1406,
+        "High": 729
+      }
+    },
+    "test": {
+      "row_count": 8060,
+      "distribution": {
+        "Low": 5880,
+        "Medium": 1490,
+        "High": 690
+      }
+    }
+  },
+  "validation_results": {
+    "passed": true,
+    "arithmetic_errors": 0,
+    "jurisdiction_errors": 0,
+    "temporal_errors": 0,
+    "itc_exposure_errors": 0,
+    "accidental_duplicates": 0,
+    "intentional_duplicates": 1790
+  }
+}

@@ -1,0 +1,380 @@
+{
+  "majority_baseline": {
+    "macro_f1": 0.2812,
+    "macro_recall": 0.3333,
+    "macro_precision": 0.2432,
+    "balanced_accuracy": 0.3333,
+    "accuracy": 0.7295,
+    "weighted_f1": 0.6154,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.7295,
+        "recall": 1.0,
+        "f1": 0.8436
+      },
+      "Medium": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "High": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.0,
+      "precision": 0.0,
+      "f1": 0.0
+    },
+    "confusion_matrix": [
+      [
+        5880,
+        0,
+        0
+      ],
+      [
+        1490,
+        0,
+        0
+      ],
+      [
+        690,
+        0,
+        0
+      ]
+    ],
+    "log_loss": 9.3418,
+    "brier_score": 0.5409,
+    "error_analysis": {
+      "actual_high_pred_low": 690,
+      "actual_high_pred_medium": 0,
+      "actual_medium_pred_low": 1490,
+      "actual_medium_pred_high": 0,
+      "actual_low_pred_medium": 0,
+      "actual_low_pred_high": 0
+    }
+  },
+  "rule_based_baseline": {
+    "macro_f1": 0.7008,
+    "macro_recall": 0.7166,
+    "macro_precision": 0.6966,
+    "balanced_accuracy": 0.7166,
+    "accuracy": 0.8488,
+    "weighted_f1": 0.8519,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.9478,
+        "recall": 0.9396,
+        "f1": 0.9437
+      },
+      "Medium": {
+        "precision": 0.7011,
+        "recall": 0.6013,
+        "f1": 0.6474
+      },
+      "High": {
+        "precision": 0.4407,
+        "recall": 0.6087,
+        "f1": 0.5113
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.6087,
+      "precision": 0.4407,
+      "f1": 0.5113
+    },
+    "confusion_matrix": [
+      [
+        5525,
+        195,
+        160
+      ],
+      [
+        221,
+        896,
+        373
+      ],
+      [
+        83,
+        187,
+        420
+      ]
+    ],
+    "log_loss": 0.4655,
+    "brier_score": 0.2489,
+    "error_analysis": {
+      "actual_high_pred_low": 83,
+      "actual_high_pred_medium": 187,
+      "actual_medium_pred_low": 221,
+      "actual_medium_pred_high": 373,
+      "actual_low_pred_medium": 195,
+      "actual_low_pred_high": 160
+    }
+  },
+  "logistic_regression": {
+    "macro_f1": 0.7264,
+    "macro_recall": 0.7502,
+    "macro_precision": 0.7123,
+    "balanced_accuracy": 0.7502,
+    "accuracy": 0.8625,
+    "weighted_f1": 0.8679,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.9694,
+        "recall": 0.9381,
+        "f1": 0.9535
+      },
+      "Medium": {
+        "precision": 0.6943,
+        "recall": 0.6631,
+        "f1": 0.6783
+      },
+      "High": {
+        "precision": 0.4731,
+        "recall": 0.6493,
+        "f1": 0.5473
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.6493,
+      "precision": 0.4731,
+      "f1": 0.5473
+    },
+    "confusion_matrix": [
+      [
+        5516,
+        239,
+        125
+      ],
+      [
+        128,
+        988,
+        374
+      ],
+      [
+        46,
+        196,
+        448
+      ]
+    ],
+    "log_loss": 0.4553,
+    "brier_score": 0.2256,
+    "error_analysis": {
+      "actual_high_pred_low": 46,
+      "actual_high_pred_medium": 196,
+      "actual_medium_pred_low": 128,
+      "actual_medium_pred_high": 374,
+      "actual_low_pred_medium": 239,
+      "actual_low_pred_high": 125
+    }
+  },
+  "random_forest": {
+    "macro_f1": 0.7368,
+    "macro_recall": 0.7604,
+    "macro_precision": 0.7224,
+    "balanced_accuracy": 0.7604,
+    "accuracy": 0.8677,
+    "weighted_f1": 0.8727,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.9698,
+        "recall": 0.9396,
+        "f1": 0.9545
+      },
+      "Medium": {
+        "precision": 0.7092,
+        "recall": 0.6792,
+        "f1": 0.6939
+      },
+      "High": {
+        "precision": 0.4882,
+        "recall": 0.6623,
+        "f1": 0.5621
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.6623,
+      "precision": 0.4882,
+      "f1": 0.5621
+    },
+    "confusion_matrix": [
+      [
+        5525,
+        228,
+        127
+      ],
+      [
+        126,
+        1012,
+        352
+      ],
+      [
+        46,
+        187,
+        457
+      ]
+    ],
+    "log_loss": 0.4175,
+    "brier_score": 0.2112,
+    "error_analysis": {
+      "actual_high_pred_low": 46,
+      "actual_high_pred_medium": 187,
+      "actual_medium_pred_low": 126,
+      "actual_medium_pred_high": 352,
+      "actual_low_pred_medium": 228,
+      "actual_low_pred_high": 127
+    }
+  },
+  "tabular_xgboost": {
+    "macro_f1": 0.7409,
+    "macro_recall": 0.7623,
+    "macro_precision": 0.7279,
+    "balanced_accuracy": 0.7623,
+    "accuracy": 0.8716,
+    "weighted_f1": 0.8761,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.9698,
+        "recall": 0.9437,
+        "f1": 0.9566
+      },
+      "Medium": {
+        "precision": 0.7219,
+        "recall": 0.6866,
+        "f1": 0.7038
+      },
+      "High": {
+        "precision": 0.4919,
+        "recall": 0.6565,
+        "f1": 0.5624
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.6565,
+      "precision": 0.4919,
+      "f1": 0.5624
+    },
+    "confusion_matrix": [
+      [
+        5549,
+        202,
+        129
+      ],
+      [
+        128,
+        1023,
+        339
+      ],
+      [
+        45,
+        192,
+        453
+      ]
+    ],
+    "log_loss": 0.4079,
+    "brier_score": 0.2066,
+    "error_analysis": {
+      "actual_high_pred_low": 45,
+      "actual_high_pred_medium": 192,
+      "actual_medium_pred_low": 128,
+      "actual_medium_pred_high": 339,
+      "actual_low_pred_medium": 202,
+      "actual_low_pred_high": 129
+    }
+  },
+  "graph_enhanced_xgboost": {
+    "macro_f1": 0.7359,
+    "macro_recall": 0.757,
+    "macro_precision": 0.7237,
+    "balanced_accuracy": 0.757,
+    "accuracy": 0.87,
+    "weighted_f1": 0.8746,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.9698,
+        "recall": 0.9446,
+        "f1": 0.957
+      },
+      "Medium": {
+        "precision": 0.7211,
+        "recall": 0.6785,
+        "f1": 0.6992
+      },
+      "High": {
+        "precision": 0.4801,
+        "recall": 0.6478,
+        "f1": 0.5515
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.6478,
+      "precision": 0.4801,
+      "f1": 0.5515
+    },
+    "confusion_matrix": [
+      [
+        5554,
+        194,
+        132
+      ],
+      [
+        127,
+        1011,
+        352
+      ],
+      [
+        46,
+        197,
+        447
+      ]
+    ],
+    "log_loss": 0.4076,
+    "brier_score": 0.2064,
+    "error_analysis": {
+      "actual_high_pred_low": 46,
+      "actual_high_pred_medium": 197,
+      "actual_medium_pred_low": 127,
+      "actual_medium_pred_high": 352,
+      "actual_low_pred_medium": 194,
+      "actual_low_pred_high": 132
+    }
+  },
+  "graph_improvement": {
+    "delta_macro_f1": -0.005,
+    "delta_balanced_accuracy": -0.0053,
+    "delta_high_risk_recall": -0.0087,
+    "delta_high_risk_f1": -0.0109,
+    "relative_f1_gain_pct": -0.67
+  },
+  "seed_robustness": {
+    "seeds_evaluated": [
+      42,
+      123,
+      2024,
+      999,
+      7
+    ],
+    "tabular_xgboost": {
+      "macro_f1_mean": 0.7392,
+      "macro_f1_std": 0.0,
+      "balanced_accuracy_mean": 0.7617,
+      "balanced_accuracy_std": 0.0,
+      "high_risk_recall_mean": 0.6652,
+      "high_risk_recall_std": 0.0,
+      "high_risk_f1_mean": 0.5618,
+      "high_risk_f1_std": 0.0
+    },
+    "graph_enhanced_xgboost": {
+      "macro_f1_mean": 0.744,
+      "macro_f1_std": 0.0,
+      "balanced_accuracy_mean": 0.7665,
+      "balanced_accuracy_std": 0.0,
+      "high_risk_recall_mean": 0.671,
+      "high_risk_recall_std": 0.0,
+      "high_risk_f1_mean": 0.5688,
+      "high_risk_f1_std": 0.0
+    }
+  }
+}

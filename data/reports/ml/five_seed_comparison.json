@@ -1,0 +1,311 @@
+{
+  "seeds": [
+    42,
+    123,
+    2024,
+    999,
+    7
+  ],
+  "summary_table": {
+    "macro_f1": {
+      "tabular": {
+        "mean": 0.7404,
+        "std": 0.0013,
+        "min": 0.7381,
+        "max": 0.742
+      },
+      "graph": {
+        "mean": 0.74,
+        "std": 0.0026,
+        "min": 0.736,
+        "max": 0.7437
+      },
+      "absolute_delta": -0.0004,
+      "relative_improvement_pct": -0.05
+    },
+    "macro_precision": {
+      "tabular": {
+        "mean": 0.7272,
+        "std": 0.0011,
+        "min": 0.7252,
+        "max": 0.7282
+      },
+      "graph": {
+        "mean": 0.7271,
+        "std": 0.0026,
+        "min": 0.7233,
+        "max": 0.7307
+      },
+      "absolute_delta": -0.0001,
+      "relative_improvement_pct": -0.01
+    },
+    "macro_recall": {
+      "tabular": {
+        "mean": 0.7616,
+        "std": 0.0021,
+        "min": 0.7595,
+        "max": 0.7646
+      },
+      "graph": {
+        "mean": 0.7603,
+        "std": 0.0025,
+        "min": 0.7575,
+        "max": 0.7638
+      },
+      "absolute_delta": -0.0013,
+      "relative_improvement_pct": -0.17
+    },
+    "balanced_accuracy": {
+      "tabular": {
+        "mean": 0.7616,
+        "std": 0.0021,
+        "min": 0.7595,
+        "max": 0.7646
+      },
+      "graph": {
+        "mean": 0.7603,
+        "std": 0.0025,
+        "min": 0.7575,
+        "max": 0.7638
+      },
+      "absolute_delta": -0.0013,
+      "relative_improvement_pct": -0.17
+    },
+    "accuracy": {
+      "tabular": {
+        "mean": 0.8712,
+        "std": 0.001,
+        "min": 0.8699,
+        "max": 0.8725
+      },
+      "graph": {
+        "mean": 0.8712,
+        "std": 0.0014,
+        "min": 0.8694,
+        "max": 0.8733
+      },
+      "absolute_delta": 0.0,
+      "relative_improvement_pct": 0.0
+    },
+    "weighted_f1": {
+      "tabular": {
+        "mean": 0.8758,
+        "std": 0.0007,
+        "min": 0.8747,
+        "max": 0.8766
+      },
+      "graph": {
+        "mean": 0.8756,
+        "std": 0.0011,
+        "min": 0.8741,
+        "max": 0.8772
+      },
+      "absolute_delta": -0.0002,
+      "relative_improvement_pct": -0.02
+    },
+    "high_risk_precision": {
+      "tabular": {
+        "mean": 0.4917,
+        "std": 0.0047,
+        "min": 0.483,
+        "max": 0.496
+      },
+      "graph": {
+        "mean": 0.4929,
+        "std": 0.01,
+        "min": 0.4823,
+        "max": 0.5093
+      },
+      "absolute_delta": 0.0012,
+      "relative_improvement_pct": 0.24
+    },
+    "high_risk_recall": {
+      "tabular": {
+        "mean": 0.6519,
+        "std": 0.0117,
+        "min": 0.6362,
+        "max": 0.6623
+      },
+      "graph": {
+        "mean": 0.6473,
+        "std": 0.0132,
+        "min": 0.6319,
+        "max": 0.6638
+      },
+      "absolute_delta": -0.0046,
+      "relative_improvement_pct": -0.71
+    },
+    "high_risk_f1": {
+      "tabular": {
+        "mean": 0.5605,
+        "std": 0.0033,
+        "min": 0.5575,
+        "max": 0.5652
+      },
+      "graph": {
+        "mean": 0.5594,
+        "std": 0.0038,
+        "min": 0.554,
+        "max": 0.564
+      },
+      "absolute_delta": -0.0011,
+      "relative_improvement_pct": -0.2
+    },
+    "log_loss": {
+      "tabular": {
+        "mean": 0.4113,
+        "std": 0.0028,
+        "min": 0.4078,
+        "max": 0.4142
+      },
+      "graph": {
+        "mean": 0.4104,
+        "std": 0.0026,
+        "min": 0.4081,
+        "max": 0.4136
+      },
+      "absolute_delta": -0.0009,
+      "relative_improvement_pct": -0.22
+    },
+    "brier_score": {
+      "tabular": {
+        "mean": 0.2072,
+        "std": 0.0016,
+        "min": 0.2052,
+        "max": 0.2089
+      },
+      "graph": {
+        "mean": 0.207,
+        "std": 0.0015,
+        "min": 0.2051,
+        "max": 0.2084
+      },
+      "absolute_delta": -0.0002,
+      "relative_improvement_pct": -0.1
+    }
+  },
+  "per_seed_results": [
+    {
+      "seed": 42,
+      "tabular_selected_params": {
+        "learning_rate": 0.08,
+        "max_depth": 5
+      },
+      "graph_selected_params": {
+        "learning_rate": 0.1,
+        "max_depth": 6
+      },
+      "tabular_macro_f1": 0.7381,
+      "graph_macro_f1": 0.7393,
+      "delta_macro_f1": 0.0012,
+      "tabular_balanced_acc": 0.7607,
+      "graph_balanced_acc": 0.7575,
+      "delta_balanced_acc": -0.0032,
+      "tabular_high_risk_recall": 0.6594,
+      "graph_high_risk_recall": 0.6319,
+      "delta_high_risk_recall": -0.0275,
+      "tabular_high_risk_f1": 0.5576,
+      "graph_high_risk_f1": 0.5575,
+      "delta_high_risk_f1": -0.0001
+    },
+    {
+      "seed": 123,
+      "tabular_selected_params": {
+        "learning_rate": 0.1,
+        "max_depth": 6
+      },
+      "graph_selected_params": {
+        "learning_rate": 0.1,
+        "max_depth": 6
+      },
+      "tabular_macro_f1": 0.7408,
+      "graph_macro_f1": 0.7437,
+      "delta_macro_f1": 0.0029,
+      "tabular_balanced_acc": 0.7597,
+      "graph_balanced_acc": 0.7612,
+      "delta_balanced_acc": 0.0015,
+      "tabular_high_risk_recall": 0.6391,
+      "graph_high_risk_recall": 0.6319,
+      "delta_high_risk_recall": -0.0072,
+      "tabular_high_risk_f1": 0.5582,
+      "graph_high_risk_f1": 0.564,
+      "delta_high_risk_f1": 0.0058
+    },
+    {
+      "seed": 2024,
+      "tabular_selected_params": {
+        "learning_rate": 0.08,
+        "max_depth": 5
+      },
+      "graph_selected_params": {
+        "learning_rate": 0.08,
+        "max_depth": 5
+      },
+      "tabular_macro_f1": 0.7406,
+      "graph_macro_f1": 0.736,
+      "delta_macro_f1": -0.0046,
+      "tabular_balanced_acc": 0.7634,
+      "graph_balanced_acc": 0.7575,
+      "delta_balanced_acc": -0.0059,
+      "tabular_high_risk_recall": 0.6623,
+      "graph_high_risk_recall": 0.6507,
+      "delta_high_risk_recall": -0.0116,
+      "tabular_high_risk_f1": 0.5638,
+      "graph_high_risk_f1": 0.554,
+      "delta_high_risk_f1": -0.0098
+    },
+    {
+      "seed": 999,
+      "tabular_selected_params": {
+        "learning_rate": 0.1,
+        "max_depth": 6
+      },
+      "graph_selected_params": {
+        "learning_rate": 0.05,
+        "max_depth": 6
+      },
+      "tabular_macro_f1": 0.7406,
+      "graph_macro_f1": 0.7419,
+      "delta_macro_f1": 0.0013,
+      "tabular_balanced_acc": 0.7595,
+      "graph_balanced_acc": 0.7638,
+      "delta_balanced_acc": 0.0043,
+      "tabular_high_risk_recall": 0.6362,
+      "graph_high_risk_recall": 0.6638,
+      "delta_high_risk_recall": 0.0276,
+      "tabular_high_risk_f1": 0.5575,
+      "graph_high_risk_f1": 0.5633,
+      "delta_high_risk_f1": 0.0058
+    },
+    {
+      "seed": 7,
+      "tabular_selected_params": {
+        "learning_rate": 0.08,
+        "max_depth": 5
+      },
+      "graph_selected_params": {
+        "learning_rate": 0.08,
+        "max_depth": 5
+      },
+      "tabular_macro_f1": 0.742,
+      "graph_macro_f1": 0.7389,
+      "delta_macro_f1": -0.0031,
+      "tabular_balanced_acc": 0.7646,
+      "graph_balanced_acc": 0.7615,
+      "delta_balanced_acc": -0.0031,
+      "tabular_high_risk_recall": 0.6623,
+      "graph_high_risk_recall": 0.658,
+      "delta_high_risk_recall": -0.0043,
+      "tabular_high_risk_f1": 0.5652,
+      "graph_high_risk_f1": 0.5581,
+      "delta_high_risk_f1": -0.0071
+    }
+  ],
+  "paired_analysis": {
+    "mean_delta": -0.0005,
+    "std_delta": 0.0029,
+    "paired_ttest_p_value": 0.7648,
+    "wilcoxon_p_value": 0.8125,
+    "statistical_power_note": "Five random seeds provide limited statistical sample size (N=5). While paired differences quantify reproducibility across splits, p-values should be interpreted with caution."
+  }
+}

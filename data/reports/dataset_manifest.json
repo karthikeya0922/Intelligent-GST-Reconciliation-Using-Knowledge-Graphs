@@ -1,0 +1,37 @@
+{
+  "dataset_version": "1.5.0",
+  "generation_timestamp": "2026-09-07T14:55:50.664109",
+  "random_seed": 42,
+  "parameters": {
+    "vendor_count": 2015,
+    "months_count": 24,
+    "seed": 42
+  },
+  "record_counts": {
+    "total_vendors": 2015,
+    "total_invoices": 168213,
+    "public_invoices": 50,
+    "synthetic_invoices": 168163,
+    "total_feature_rows": 46345
+  },
+  "feature_version": "2.0",
+  "label_version": "1.5-experimental",
+  "generator_version": "1.5.0-hybrid",
+  "split_sizes": {
+    "train_rows": 30225,
+    "validation_rows": 8060,
+    "test_rows": 8060,
+    "total_feature_rows": 46345
+  },
+  "schema_hashes": {
+    "invoice_schema": "pydantic-v2-canonical",
+    "vendor_schema": "pydantic-v2-canonical",
+    "feature_schema": "paise-decimal-v2"
+  },
+  "target_balance_spec": {
+    "low_risk_target": "60-70%",
+    "medium_risk_target": "20-25%",
+    "high_risk_target": "10-15%",
+    "disclaimer": "Experimental sampling configuration; not representative of statutory GST compliance prevalence."
+  }
+}

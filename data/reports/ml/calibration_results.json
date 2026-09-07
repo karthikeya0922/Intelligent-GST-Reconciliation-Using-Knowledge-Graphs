@@ -1,0 +1,6 @@
+{
+  "tabular_log_loss": 0.4079,
+  "tabular_brier_score": 0.2066,
+  "graph_log_loss": 0.4076,
+  "graph_brier_score": 0.2064
+}

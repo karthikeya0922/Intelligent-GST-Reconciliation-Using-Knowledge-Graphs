@@ -1,0 +1,96 @@
+{
+  "tabular_confusion_matrix": {
+    "labels": [
+      "Low",
+      "Medium",
+      "High"
+    ],
+    "matrix": [
+      [
+        5536,
+        208,
+        136
+      ],
+      [
+        128,
+        1028,
+        334
+      ],
+      [
+        44,
+        189,
+        457
+      ]
+    ],
+    "cell_details": {
+      "Low_to_Low": 5536,
+      "Low_to_Medium": 208,
+      "Low_to_High": 136,
+      "Medium_to_Low": 128,
+      "Medium_to_Medium": 1028,
+      "Medium_to_High": 334,
+      "High_to_Low": 44,
+      "High_to_Medium": 189,
+      "High_to_High": 457
+    }
+  },
+  "graph_confusion_matrix": {
+    "labels": [
+      "Low",
+      "Medium",
+      "High"
+    ],
+    "matrix": [
+      [
+        5539,
+        202,
+        139
+      ],
+      [
+        126,
+        1020,
+        344
+      ],
+      [
+        46,
+        190,
+        454
+      ]
+    ],
+    "cell_details": {
+      "Low_to_Low": 5539,
+      "Low_to_Medium": 202,
+      "Low_to_High": 139,
+      "Medium_to_Low": 126,
+      "Medium_to_Medium": 1020,
+      "Medium_to_High": 344,
+      "High_to_Low": 46,
+      "High_to_Medium": 190,
+      "High_to_High": 454
+    }
+  },
+  "high_risk_false_negatives": {
+    "actual_high_count": 690,
+    "tabular": {
+      "pred_low": 44,
+      "pred_medium": 189,
+      "total_false_negatives": 233,
+      "false_negative_rate": 0.3377
+    },
+    "graph": {
+      "pred_low": 46,
+      "pred_medium": 190,
+      "total_false_negatives": 236,
+      "false_negative_rate": 0.342
+    },
+    "delta_false_negatives": 3
+  },
+  "discordant_analysis": {
+    "total_test_samples": 8060,
+    "graph_correct_tabular_incorrect": 51,
+    "tabular_correct_graph_incorrect": 59,
+    "net_accuracy_advantage_graph": -8,
+    "high_risk_caught_by_graph_missed_by_tabular": 14,
+    "high_risk_caught_by_tabular_missed_by_graph": 17
+  }
+}

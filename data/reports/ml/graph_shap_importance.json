@@ -1,0 +1,220 @@
+{
+  "ranked_features": [
+    {
+      "rank": 1,
+      "feature": "average_filing_delay",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.88046
+    },
+    {
+      "rank": 2,
+      "feature": "mismatch_severity_index",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.14665
+    },
+    {
+      "rank": 3,
+      "feature": "late_filing_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.13554
+    },
+    {
+      "rank": 4,
+      "feature": "previous_period_risk",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.10273
+    },
+    {
+      "rank": 5,
+      "feature": "unfiled_return_ratio",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.09138
+    },
+    {
+      "rank": 6,
+      "feature": "missing_einvoice_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.09022
+    },
+    {
+      "rank": 7,
+      "feature": "missing_eway_bill_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.07991
+    },
+    {
+      "rank": 8,
+      "feature": "itc_exposure_ratio",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.05161
+    },
+    {
+      "rank": 9,
+      "feature": "average_invoice_value",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.04627
+    },
+    {
+      "rank": 10,
+      "feature": "tax_per_invoice",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.04346
+    },
+    {
+      "rank": 11,
+      "feature": "itc_exposure",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.04249
+    },
+    {
+      "rank": 12,
+      "feature": "mismatch_rate",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.04244
+    },
+    {
+      "rank": 13,
+      "feature": "total_invoice_value",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.03739
+    },
+    {
+      "rank": 14,
+      "feature": "total_tax",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.03335
+    },
+    {
+      "rank": 15,
+      "feature": "mismatch_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.02604
+    },
+    {
+      "rank": 16,
+      "feature": "duplicate_invoice_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.0199
+    },
+    {
+      "rank": 17,
+      "feature": "invoice_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.01248
+    },
+    {
+      "rank": 18,
+      "feature": "missing_gstr1_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.00416
+    },
+    {
+      "rank": 19,
+      "feature": "missing_gstr3b_count",
+      "feature_type": "Tabular",
+      "feature_group": "Tabular",
+      "mean_absolute_shap": 0.00298
+    },
+    {
+      "rank": 20,
+      "feature": "graph_out_degree",
+      "feature_type": "Graph",
+      "feature_group": "Group A (Degree/Connectivity)",
+      "mean_absolute_shap": 0.00025
+    },
+    {
+      "rank": 21,
+      "feature": "graph_total_degree",
+      "feature_type": "Graph",
+      "feature_group": "Group A (Degree/Connectivity)",
+      "mean_absolute_shap": 6e-05
+    },
+    {
+      "rank": 22,
+      "feature": "graph_degree_centrality",
+      "feature_type": "Graph",
+      "feature_group": "Group B (Centrality)",
+      "mean_absolute_shap": 2e-05
+    },
+    {
+      "rank": 23,
+      "feature": "graph_in_degree",
+      "feature_type": "Graph",
+      "feature_group": "Group A (Degree/Connectivity)",
+      "mean_absolute_shap": 0.0
+    },
+    {
+      "rank": 24,
+      "feature": "graph_pagerank",
+      "feature_type": "Graph",
+      "feature_group": "Group B (Centrality)",
+      "mean_absolute_shap": 0.0
+    },
+    {
+      "rank": 25,
+      "feature": "graph_clustering_coefficient",
+      "feature_type": "Graph",
+      "feature_group": "Group D (Cycle/Clustering)",
+      "mean_absolute_shap": 0.0
+    },
+    {
+      "rank": 26,
+      "feature": "reciprocal_trade_count",
+      "feature_type": "Graph",
+      "feature_group": "Group C (Relationship Structure)",
+      "mean_absolute_shap": 0.0
+    },
+    {
+      "rank": 27,
+      "feature": "cycle_participation",
+      "feature_type": "Graph",
+      "feature_group": "Group D (Cycle/Clustering)",
+      "mean_absolute_shap": 0.0
+    },
+    {
+      "rank": 28,
+      "feature": "high_risk_neighbor_count",
+      "feature_type": "Graph",
+      "feature_group": "Group E (Historical Neighbor-Risk)",
+      "mean_absolute_shap": 0.0
+    },
+    {
+      "rank": 29,
+      "feature": "neighbor_average_risk",
+      "feature_type": "Graph",
+      "feature_group": "Group E (Historical Neighbor-Risk)",
+      "mean_absolute_shap": 0.0
+    }
+  ],
+  "summary": {
+    "total_features": 29,
+    "tabular_features_count": 19,
+    "graph_features_count": 10,
+    "graph_features_in_top_10_count": 0,
+    "graph_features_in_top_10": [],
+    "graph_features_in_top_20_count": 1,
+    "graph_features_in_top_20": [
+      "graph_out_degree"
+    ],
+    "tabular_shap_share_pct": 99.98,
+    "graph_shap_share_pct": 0.02
+  }
+}

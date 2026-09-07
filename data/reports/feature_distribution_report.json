@@ -1,0 +1,281 @@
+{
+  "feature_statistics": {
+    "invoice_count": {
+      "count": 46345,
+      "mean": 3.4779,
+      "median": 3.0,
+      "p50": 3.0,
+      "std": 1.2431,
+      "min": 0.0,
+      "max": 10.0,
+      "p25": 2.0,
+      "p75": 4.0,
+      "skewness": 0.2668,
+      "missing_count": 0
+    },
+    "total_invoice_value": {
+      "count": 46345,
+      "mean": 464976.5625,
+      "median": 380504.26,
+      "p50": 380504.26,
+      "std": 415541.821,
+      "min": 0.0,
+      "max": 12432127.74,
+      "p25": 239820.29,
+      "p75": 568530.33,
+      "skewness": 5.6135,
+      "missing_count": 0
+    },
+    "average_invoice_value": {
+      "count": 46345,
+      "mean": 144571.9119,
+      "median": 107349.43,
+      "p50": 107349.43,
+      "std": 210931.9798,
+      "min": 0.0,
+      "max": 8633225.41,
+      "p25": 77141.87,
+      "p75": 151141.75,
+      "skewness": 11.648,
+      "missing_count": 0
+    },
+    "total_tax": {
+      "count": 46345,
+      "mean": 66945.3098,
+      "median": 53669.81,
+      "p50": 53669.81,
+      "std": 62492.4424,
+      "min": 0.0,
+      "max": 1577931.34,
+      "p25": 32977.07,
+      "p75": 82018.05,
+      "skewness": 5.5416,
+      "missing_count": 0
+    },
+    "mismatch_count": {
+      "count": 46345,
+      "mean": 1.2416,
+      "median": 1.0,
+      "p50": 1.0,
+      "std": 1.6188,
+      "min": 0.0,
+      "max": 10.0,
+      "p25": 0.0,
+      "p75": 2.0,
+      "skewness": 1.2694,
+      "missing_count": 0
+    },
+    "mismatch_rate": {
+      "count": 46345,
+      "mean": 0.3467,
+      "median": 0.2,
+      "p50": 0.2,
+      "std": 0.4158,
+      "min": 0.0,
+      "max": 1.0,
+      "p25": 0.0,
+      "p75": 1.0,
+      "skewness": 0.7089,
+      "missing_count": 0
+    },
+    "missing_gstr1_count": {
+      "count": 46345,
+      "mean": 0.0745,
+      "median": 0.0,
+      "p50": 0.0,
+      "std": 0.2626,
+      "min": 0.0,
+      "max": 1.0,
+      "p25": 0.0,
+      "p75": 0.0,
+      "skewness": 3.2402,
+      "missing_count": 0
+    },
+    "missing_gstr3b_count": {
+      "count": 46345,
+      "mean": 0.0795,
+      "median": 0.0,
+      "p50": 0.0,
+      "std": 0.2706,
+      "min": 0.0,
+      "max": 1.0,
+      "p25": 0.0,
+      "p75": 0.0,
+      "skewness": 3.1081,
+      "missing_count": 0
+    },
+    "late_filing_count": {
+      "count": 46345,
+      "mean": 0.5471,
+      "median": 1.0,
+      "p50": 1.0,
+      "std": 0.4978,
+      "min": 0.0,
+      "max": 1.0,
+      "p25": 0.0,
+      "p75": 1.0,
+      "skewness": -0.1894,
+      "missing_count": 0
+    },
+    "average_filing_delay": {
+      "count": 46345,
+      "mean": 6.92,
+      "median": 1.0,
+      "p50": 1.0,
+      "std": 10.6281,
+      "min": 0.0,
+      "max": 55.0,
+      "p25": 0.0,
+      "p75": 9.0,
+      "skewness": 1.5689,
+      "missing_count": 0
+    },
+    "duplicate_invoice_count": {
+      "count": 46345,
+      "mean": 0.0448,
+      "median": 0.0,
+      "p50": 0.0,
+      "std": 0.3656,
+      "min": 0.0,
+      "max": 5.0,
+      "p25": 0.0,
+      "p75": 0.0,
+      "skewness": 9.1931,
+      "missing_count": 0
+    },
+    "missing_einvoice_count": {
+      "count": 46345,
+      "mean": 0.3154,
+      "median": 0.0,
+      "p50": 0.0,
+      "std": 0.7026,
+      "min": 0.0,
+      "max": 5.0,
+      "p25": 0.0,
+      "p75": 0.0,
+      "skewness": 2.5692,
+      "missing_count": 0
+    },
+    "missing_eway_bill_count": {
+      "count": 46345,
+      "mean": 0.2354,
+      "median": 0.0,
+      "p50": 0.0,
+      "std": 0.575,
+      "min": 0.0,
+      "max": 5.0,
+      "p25": 0.0,
+      "p75": 0.0,
+      "skewness": 2.9041,
+      "missing_count": 0
+    },
+    "itc_exposure": {
+      "count": 46345,
+      "mean": 13788.5963,
+      "median": 0.0,
+      "p50": 0.0,
+      "std": 39810.397,
+      "min": 0.0,
+      "max": 1316932.69,
+      "p25": 0.0,
+      "p75": 6500.0,
+      "skewness": 8.4315,
+      "missing_count": 0
+    },
+    "supplier_relationship_count": {
+      "count": 46345,
+      "mean": 1.0,
+      "median": 1.0,
+      "p50": 1.0,
+      "std": 0.0,
+      "min": 1.0,
+      "max": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "skewness": 0.0,
+      "missing_count": 0
+    },
+    "graph_degree": {
+      "count": 46345,
+      "mean": 1.0546,
+      "median": 1.0,
+      "p50": 1.0,
+      "std": 0.3274,
+      "min": 1.0,
+      "max": 4.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "skewness": 5.887,
+      "missing_count": 0
+    },
+    "previous_period_risk": {
+      "count": 46345,
+      "mean": 0.1333,
+      "median": 0.035,
+      "p50": 0.035,
+      "std": 0.211,
+      "min": 0.0,
+      "max": 0.9,
+      "p25": 0.0,
+      "p75": 0.1983,
+      "skewness": 1.9324,
+      "missing_count": 0
+    }
+  },
+  "distribution_warnings": [
+    {
+      "type": "NEAR_ZERO_VARIANCE",
+      "level": "WARNING",
+      "feature": "supplier_relationship_count",
+      "message": "Feature 'supplier_relationship_count' has near-zero variance (std=0.000000)."
+    },
+    {
+      "type": "EXTREME_CORRELATION",
+      "level": "WARNING",
+      "feature": "graph_degree <-> graph_centrality",
+      "message": "Features 'graph_degree' and 'graph_centrality' have suspiciously high correlation (r=1.0000)."
+    },
+    {
+      "type": "EXTREME_CORRELATION",
+      "level": "WARNING",
+      "feature": "target_compliance_score <-> target_risk_score",
+      "message": "Features 'target_compliance_score' and 'target_risk_score' have suspiciously high correlation (r=1.0000)."
+    }
+  ],
+  "distribution_anomalies": [
+    {
+      "type": "NEAR_ZERO_VARIANCE",
+      "level": "WARNING",
+      "feature": "supplier_relationship_count",
+      "message": "Feature 'supplier_relationship_count' has near-zero variance (std=0.000000)."
+    },
+    {
+      "type": "EXTREME_CORRELATION",
+      "level": "WARNING",
+      "feature": "graph_degree <-> graph_centrality",
+      "message": "Features 'graph_degree' and 'graph_centrality' have suspiciously high correlation (r=1.0000)."
+    },
+    {
+      "type": "EXTREME_CORRELATION",
+      "level": "WARNING",
+      "feature": "target_compliance_score <-> target_risk_score",
+      "message": "Features 'target_compliance_score' and 'target_risk_score' have suspiciously high correlation (r=1.0000)."
+    }
+  ],
+  "public_synthetic_compatibility": {
+    "public_invoices": {
+      "count": 50,
+      "mean": 1763.15,
+      "median": 1160.5,
+      "std": 1786.5
+    },
+    "synthetic_invoices": {
+      "count": 168163,
+      "mean": 114347.97,
+      "median": 76257.48,
+      "std": 162497.87
+    },
+    "compatibility_status": "WARNING",
+    "warning": "Significant scale difference: mean transaction values differ by 64.9x."
+  }
+}

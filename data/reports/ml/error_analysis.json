@@ -1,0 +1,18 @@
+{
+  "tabular_error_analysis": {
+    "actual_high_pred_low": 45,
+    "actual_high_pred_medium": 192,
+    "actual_medium_pred_low": 128,
+    "actual_medium_pred_high": 339,
+    "actual_low_pred_medium": 202,
+    "actual_low_pred_high": 129
+  },
+  "graph_error_analysis": {
+    "actual_high_pred_low": 46,
+    "actual_high_pred_medium": 197,
+    "actual_medium_pred_low": 127,
+    "actual_medium_pred_high": 352,
+    "actual_low_pred_medium": 194,
+    "actual_low_pred_high": 132
+  }
+}

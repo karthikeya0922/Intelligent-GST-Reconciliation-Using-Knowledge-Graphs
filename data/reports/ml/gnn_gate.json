@@ -1,0 +1,67 @@
+{
+  "gnn_recommendation": "NOT JUSTIFIED",
+  "decision": "DO NOT FORCE GNN",
+  "criteria_evaluations": [
+    {
+      "id": 1,
+      "name": "Graph Predictive Improvement",
+      "evidence": "Macro F1 Delta: -0.0004 (Relative: -0.05%), High-Risk Recall Delta: -0.0046",
+      "status": "FAIL"
+    },
+    {
+      "id": 2,
+      "name": "Number of Nodes",
+      "evidence": "2,015 distinct GST taxpayers in benchmark universe",
+      "status": "PASS (ADEQUATE)"
+    },
+    {
+      "id": 3,
+      "name": "Number of Edges",
+      "evidence": "168,213 chronological B2B invoice edges over 24 months",
+      "status": "PASS (ADEQUATE)"
+    },
+    {
+      "id": 4,
+      "name": "Edge-Type Diversity",
+      "evidence": "Primarily homogeneous B2B commercial invoice transactions and statutory GSTR return links",
+      "status": "NEUTRAL"
+    },
+    {
+      "id": 5,
+      "name": "Temporal Graph Snapshots",
+      "evidence": "Strict dynamic time-windowing G(T_k) required monthly to prevent leakage; full dynamic GNN adds high temporal maintenance complexity",
+      "status": "NEUTRAL/CONCERN"
+    },
+    {
+      "id": 6,
+      "name": "Graph Connectivity",
+      "evidence": "Zero-degree vendors in network: 99.65%. Modest density with core hubs and sparse periphery",
+      "status": "NEUTRAL"
+    },
+    {
+      "id": 7,
+      "name": "Number of Labeled Nodes",
+      "evidence": "46,345 vendor-period ground-truth risk observation instances across 24 periods",
+      "status": "PASS (SUFFICIENT)"
+    },
+    {
+      "id": 8,
+      "name": "Graph Feature Importance",
+      "evidence": "Graph features represent 0.02% of total Tree SHAP attribution (0 features in Top 10, 1 in Top 20)",
+      "status": "FAIL (NEGLIGIBLE ATTRIBUTION)"
+    },
+    {
+      "id": 9,
+      "name": "Computational Feasibility",
+      "evidence": "Tabular+Graph XGBoost runs in <15ms inference on CPU. GNN requires PyTorch Geometric/DGL, GPU infrastructure, and sub-graph neighborhood sampling latency",
+      "status": "FAIL (DISADVANTAGE FOR GNN)"
+    },
+    {
+      "id": 10,
+      "name": "Incremental Information Beyond Tabular",
+      "evidence": "Tabular compliance and reconciliation features explain >99.9% of SHAP attribution. Graph metrics are heavily zero-inflated (>99.6% zeros)",
+      "status": "FAIL (REDUNDANT/SPARSE)"
+    }
+  ],
+  "rationale": "The controlled 5-seed evaluation demonstrates that graph features provide neutral incremental predictive value (Macro F1 delta: -0.0004 across 5 seeds: 0.7404 Tabular vs 0.7400 Graph-Enhanced). Graph features account for only 0.02% of Tree SHAP attribution due to severe network sparsity (>99.6% zero values in graph metrics). Therefore, deploying a deep Graph Neural Network (GNN/GraphSAGE) is completely unjustified and would introduce substantial architectural complexity, GPU dependencies, and inference latency without measurable predictive benefit."
+}

@@ -1,0 +1,123 @@
+{
+  "tabular_results": {
+    "macro_f1": 0.7409,
+    "macro_recall": 0.7623,
+    "macro_precision": 0.7279,
+    "balanced_accuracy": 0.7623,
+    "accuracy": 0.8716,
+    "weighted_f1": 0.8761,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.9698,
+        "recall": 0.9437,
+        "f1": 0.9566
+      },
+      "Medium": {
+        "precision": 0.7219,
+        "recall": 0.6866,
+        "f1": 0.7038
+      },
+      "High": {
+        "precision": 0.4919,
+        "recall": 0.6565,
+        "f1": 0.5624
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.6565,
+      "precision": 0.4919,
+      "f1": 0.5624
+    },
+    "confusion_matrix": [
+      [
+        5549,
+        202,
+        129
+      ],
+      [
+        128,
+        1023,
+        339
+      ],
+      [
+        45,
+        192,
+        453
+      ]
+    ],
+    "log_loss": 0.4079,
+    "brier_score": 0.2066,
+    "error_analysis": {
+      "actual_high_pred_low": 45,
+      "actual_high_pred_medium": 192,
+      "actual_medium_pred_low": 128,
+      "actual_medium_pred_high": 339,
+      "actual_low_pred_medium": 202,
+      "actual_low_pred_high": 129
+    }
+  },
+  "graph_results": {
+    "macro_f1": 0.7359,
+    "macro_recall": 0.757,
+    "macro_precision": 0.7237,
+    "balanced_accuracy": 0.757,
+    "accuracy": 0.87,
+    "weighted_f1": 0.8746,
+    "class_metrics": {
+      "Low": {
+        "precision": 0.9698,
+        "recall": 0.9446,
+        "f1": 0.957
+      },
+      "Medium": {
+        "precision": 0.7211,
+        "recall": 0.6785,
+        "f1": 0.6992
+      },
+      "High": {
+        "precision": 0.4801,
+        "recall": 0.6478,
+        "f1": 0.5515
+      }
+    },
+    "high_risk_metrics": {
+      "recall": 0.6478,
+      "precision": 0.4801,
+      "f1": 0.5515
+    },
+    "confusion_matrix": [
+      [
+        5554,
+        194,
+        132
+      ],
+      [
+        127,
+        1011,
+        352
+      ],
+      [
+        46,
+        197,
+        447
+      ]
+    ],
+    "log_loss": 0.4076,
+    "brier_score": 0.2064,
+    "error_analysis": {
+      "actual_high_pred_low": 46,
+      "actual_high_pred_medium": 197,
+      "actual_medium_pred_low": 127,
+      "actual_medium_pred_high": 352,
+      "actual_low_pred_medium": 194,
+      "actual_low_pred_high": 132
+    }
+  },
+  "improvement": {
+    "delta_macro_f1": -0.005,
+    "delta_balanced_accuracy": -0.0053,
+    "delta_high_risk_recall": -0.0087,
+    "delta_high_risk_f1": -0.0109,
+    "relative_f1_gain_pct": -0.67
+  }
+}

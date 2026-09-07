@@ -1,0 +1,213 @@
+{
+  "audit_timestamp": "2026-09-07T15:18:37.224345",
+  "total_features_audited": 29,
+  "passed_features_count": 29,
+  "failed_features_count": 0,
+  "temporal_ordering_intact": true,
+  "overall_audit_status": "PASSED",
+  "features": [
+    {
+      "feature_name": "invoice_count",
+      "feature_group": "Transaction",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "total_invoice_value",
+      "feature_group": "Transaction",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "average_invoice_value",
+      "feature_group": "Transaction",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "total_tax",
+      "feature_group": "Transaction",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "mismatch_count",
+      "feature_group": "Reconciliation",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "mismatch_rate",
+      "feature_group": "Reconciliation",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "duplicate_invoice_count",
+      "feature_group": "Reconciliation",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "missing_einvoice_count",
+      "feature_group": "Reconciliation",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "missing_eway_bill_count",
+      "feature_group": "Reconciliation",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "missing_gstr1_count",
+      "feature_group": "Compliance",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "missing_gstr3b_count",
+      "feature_group": "Compliance",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "late_filing_count",
+      "feature_group": "Compliance",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "average_filing_delay",
+      "feature_group": "Compliance",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "itc_exposure",
+      "feature_group": "ITC",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "previous_period_risk",
+      "feature_group": "Historical State",
+      "information_cutoff": "<= T_{k-1}",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "itc_exposure_ratio",
+      "feature_group": "ITC (Derived)",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "tax_per_invoice",
+      "feature_group": "Transaction (Derived)",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "unfiled_return_ratio",
+      "feature_group": "Compliance (Derived)",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "mismatch_severity_index",
+      "feature_group": "Reconciliation (Derived)",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "graph_in_degree",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "graph_out_degree",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "graph_total_degree",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "graph_degree_centrality",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "graph_pagerank",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "graph_clustering_coefficient",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "reciprocal_trade_count",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "cycle_participation",
+      "feature_group": "Knowledge Graph",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "high_risk_neighbor_count",
+      "feature_group": "Knowledge Graph (Neighborhood)",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    },
+    {
+      "feature_name": "neighbor_average_risk",
+      "feature_group": "Knowledge Graph (Neighborhood)",
+      "information_cutoff": "<= T_k",
+      "future_dependency_detected": false,
+      "status": "PASS"
+    }
+  ]
+}

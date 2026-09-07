@@ -1,0 +1,128 @@
+{
+  "forward_addition": {
+    "Stage 0: Tabular Only (19 features)": {
+      "num_features": 19,
+      "validation_macro_f1": 0.7254,
+      "validation_balanced_acc": 0.7436,
+      "test_macro_f1": 0.7381,
+      "test_balanced_acc": 0.7607,
+      "test_high_risk_recall": 0.6594,
+      "test_high_risk_f1": 0.5576,
+      "test_log_loss": 0.4139,
+      "test_brier_score": 0.2088
+    },
+    "Stage 1: Tabular + Group A [Degree] (22 features)": {
+      "num_features": 22,
+      "validation_macro_f1": 0.7219,
+      "validation_balanced_acc": 0.7407,
+      "test_macro_f1": 0.7412,
+      "test_balanced_acc": 0.7632,
+      "test_high_risk_recall": 0.658,
+      "test_high_risk_f1": 0.5619,
+      "test_log_loss": 0.4139,
+      "test_brier_score": 0.2087
+    },
+    "Stage 2: Tabular + Group A+B [Centrality] (24 features)": {
+      "num_features": 24,
+      "validation_macro_f1": 0.7219,
+      "validation_balanced_acc": 0.7404,
+      "test_macro_f1": 0.738,
+      "test_balanced_acc": 0.7606,
+      "test_high_risk_recall": 0.658,
+      "test_high_risk_f1": 0.5581,
+      "test_log_loss": 0.4138,
+      "test_brier_score": 0.2086
+    },
+    "Stage 3: Tabular + Group A+B+C [Relationship] (25 features)": {
+      "num_features": 25,
+      "validation_macro_f1": 0.7226,
+      "validation_balanced_acc": 0.7413,
+      "test_macro_f1": 0.7407,
+      "test_balanced_acc": 0.7633,
+      "test_high_risk_recall": 0.6638,
+      "test_high_risk_f1": 0.563,
+      "test_log_loss": 0.4134,
+      "test_brier_score": 0.2086
+    },
+    "Stage 4: Tabular + Group A+B+C+D [Cycles/Clusters] (27 features)": {
+      "num_features": 27,
+      "validation_macro_f1": 0.7244,
+      "validation_balanced_acc": 0.7435,
+      "test_macro_f1": 0.7361,
+      "test_balanced_acc": 0.7581,
+      "test_high_risk_recall": 0.6493,
+      "test_high_risk_f1": 0.5534,
+      "test_log_loss": 0.4149,
+      "test_brier_score": 0.2093
+    },
+    "Stage 5: Tabular + All Graph Groups [A-E] (29 features)": {
+      "num_features": 29,
+      "validation_macro_f1": 0.7237,
+      "validation_balanced_acc": 0.7426,
+      "test_macro_f1": 0.7402,
+      "test_balanced_acc": 0.7621,
+      "test_high_risk_recall": 0.658,
+      "test_high_risk_f1": 0.5605,
+      "test_log_loss": 0.4133,
+      "test_brier_score": 0.2081
+    }
+  },
+  "leave_one_group_out": {
+    "Leave-Out Group A (Degree)": {
+      "num_features": 26,
+      "validation_macro_f1": 0.7262,
+      "validation_balanced_acc": 0.7451,
+      "test_macro_f1": 0.7443,
+      "test_balanced_acc": 0.7666,
+      "test_high_risk_recall": 0.6681,
+      "test_high_risk_f1": 0.5695,
+      "test_log_loss": 0.4144,
+      "test_brier_score": 0.209
+    },
+    "Leave-Out Group B (Centrality)": {
+      "num_features": 27,
+      "validation_macro_f1": 0.7246,
+      "validation_balanced_acc": 0.7435,
+      "test_macro_f1": 0.7389,
+      "test_balanced_acc": 0.7615,
+      "test_high_risk_recall": 0.658,
+      "test_high_risk_f1": 0.5598,
+      "test_log_loss": 0.4147,
+      "test_brier_score": 0.2092
+    },
+    "Leave-Out Group C (Relationship Structure)": {
+      "num_features": 28,
+      "validation_macro_f1": 0.7238,
+      "validation_balanced_acc": 0.7414,
+      "test_macro_f1": 0.7415,
+      "test_balanced_acc": 0.7636,
+      "test_high_risk_recall": 0.6594,
+      "test_high_risk_f1": 0.5642,
+      "test_log_loss": 0.4132,
+      "test_brier_score": 0.2083
+    },
+    "Leave-Out Group D (Cycle/Clustering)": {
+      "num_features": 27,
+      "validation_macro_f1": 0.7244,
+      "validation_balanced_acc": 0.7435,
+      "test_macro_f1": 0.7361,
+      "test_balanced_acc": 0.7581,
+      "test_high_risk_recall": 0.6493,
+      "test_high_risk_f1": 0.5534,
+      "test_log_loss": 0.4149,
+      "test_brier_score": 0.2093
+    },
+    "Leave-Out Group E (Historical Neighbor-Risk)": {
+      "num_features": 27,
+      "validation_macro_f1": 0.7244,
+      "validation_balanced_acc": 0.7435,
+      "test_macro_f1": 0.7361,
+      "test_balanced_acc": 0.7581,
+      "test_high_risk_recall": 0.6493,
+      "test_high_risk_f1": 0.5534,
+      "test_log_loss": 0.4149,
+      "test_brier_score": 0.2093
+    }
+  },
+  "locked_evaluation_note": "Ablation groups were analyzed on the Validation set to assess promising structural components without test set leakage. Locked configurations were then evaluated on the Test set."
+}
