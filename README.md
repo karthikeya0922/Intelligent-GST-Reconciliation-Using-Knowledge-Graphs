@@ -1,544 +1,870 @@
-# 🧠 Intelligent GST Reconciliation Using Knowledge Graphs
+# Intelligent GST Reconciliation Using Knowledge Graphs
 
-> **AI-Powered GST Invoice Reconciliation System** — A full-stack web application that uses Knowledge Graphs, Machine Learning (Random Forest), and Graph-based Anomaly Detection to automate GSTR-1 vs GSTR-2B reconciliation, predict vendor compliance risk, and provide explainable audit trails.
+> **Research-grade GST reconciliation, ITC risk prediction, explainability, and graph-based investigation platform.**
 
-![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
-![Chart.js](https://img.shields.io/badge/Chart.js-4.x-FF6384?logo=chartdotjs&logoColor=white)
-
----
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Setup & Installation](#setup--installation)
-- [Running the Application](#running-the-application)
-- [API Endpoints](#api-endpoints)
-- [Deliverables](#deliverables)
-- [Screenshots](#screenshots)
-- [Team](#team)
+[![Python](https://img.shields.io/badge/Python-3.11-blue)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
+[![XGBoost](https://img.shields.io/badge/XGBoost-ML-orange)](https://xgboost.readthedocs.io/)
+[![Neo4j](https://img.shields.io/badge/Neo4j-Knowledge%20Graph-red)](https://neo4j.com/)
+[![Tests](https://img.shields.io/badge/Tests-106%20Passing-success)]()
 
 ---
 
-## 🎯 Overview
+## 📌 Overview
 
-India's GST system requires businesses to reconcile invoices across multiple returns (GSTR-1, GSTR-2B, GSTR-3B). Mismatches lead to **blocked Input Tax Credit (ITC)** worth crores. This project builds an **intelligent reconciliation engine** that:
+**Intelligent GST Reconciliation Using Knowledge Graphs** is a research-oriented platform designed to assist with GST invoice reconciliation, vendor risk assessment, Input Tax Credit (ITC) exposure analysis, and relationship-based investigation.
 
-1. **Models GST entities** (vendors, invoices, returns) as a **Knowledge Graph**
-2. **Detects mismatches** using graph traversal algorithms
-3. **Predicts vendor compliance risk** using a **Random Forest classifier**
-4. **Generates explainable audit trails** with graph-path evidence
-5. **Provides an interactive dashboard** for real-time monitoring
+The system combines:
 
-### Problem Statement
+* GST reconciliation
+* Historical behavioral feature engineering
+* Machine learning
+* Knowledge Graph investigation
+* Explainable AI
+* ITC exposure analysis
+* Temporal leakage prevention
+* Auditor-oriented decision support
 
-| Challenge | Our Solution |
-|---|---|
-| Manual invoice matching is error-prone | Automated graph-based reconciliation |
-| Hard to identify risky vendors | ML-powered vendor risk scoring |
-| Audit trails lack transparency | Graph-path explainable AI |
-| Static reports, no real-time updates | Dynamic dashboard with live MongoDB data |
-| Scattered data across returns | Unified Knowledge Graph data model |
+The system is designed as a **risk-indicator and decision-support platform**, not as a system that determines fraud, tax liability, or statutory non-compliance.
 
 ---
 
-## ✨ Key Features
+# 🎯 Research Question
 
-### 1. Knowledge Graph Schema & Data Model
-- **Entity Types**: Taxpayer, Vendor, Invoice, GSTR-1, GSTR-2B, GSTR-3B, e-Invoice, e-Way Bill
-- **Relationship Types**: `ISSUED_INVOICE`, `REPORTED_IN`, `BILLED_TO`, `RECORDED_IN_PR`,
-  `FILED_RETURN`, `ELECTRONIC_VERSION`, `COVERS_SHIPMENT`
-- Interactive Force-Directed Graph visualization with layer toggles
-- Click-to-explore node details with risk scores and connections
+The primary research question is:
 
-### 2. Reconciliation Engine
-- Automated GSTR-1 ↔ GSTR-2B matching with mismatch classification
-- Mismatch types: Missing in GSTR-1, Tax Amount Mismatch, HSN Mismatch, Late Filing, E-Way Bill Missing
-- Filterable reconciliation table with period, risk, and type filters
-- Cypher-style graph traversal path display for each mismatch
+> **Does incorporating Knowledge Graph-derived information improve GST vendor/ITC risk prediction compared with conventional tabular machine-learning models?**
 
-### 3. ITC Risk Dashboard
-- Real-time At-Risk ITC calculation from mismatched invoices
-- Vendor risk distribution (Compliant / Review / High Risk)
-- Top vendors by at-risk ITC horizontal bar chart
-- ITC Blocked trend line chart
-- Full vendor compliance scorecard with risk bars
+The experimental results provide a neutral answer on the current benchmark:
 
-### 4. Explainable Audit Trails
-- Generated for **every** flagged invoice from live graph facts (`GET /api/audit-trail/{id}`)
-- Each evidence line traces to a present or absent relationship, so the explanation
-  cannot drift from the data
-- Cites the applicable CGST provision — s.16(2)(aa) for an unreported invoice,
-  s.16(2)(c) where tax was never remitted, s.35(1) for an unbooked purchase
-- Findings are ranked by gravity, so the headline reports the most serious issue
-  rather than whichever label happened to be stored
-- Prints the traversal that produced it, including the second hop through the
-  supplier's GSTR-3B and the taxpayer's Purchase Register
+> **Knowledge Graph-derived predictive features did not provide statistically significant incremental predictive improvement over the tabular XGBoost baseline.**
 
-### 5. Predictive Vendor Compliance Model
-- **Random Forest Classifier** (300 trees, depth 8) served from the API — held-out accuracy **76.8%**, ROC-AUC **0.853**, 5-fold CV **76.8%**
-- Trained on a synthetic vendor population with *stochastic* labels, so the score reflects real generalisation rather than a model re-learning its own labelling rule
-- **8 features**: mismatch count, tax at risk, filing delay, graph centrality, transaction volume, community cluster, e-invoice compliance rate, state risk factor
-- Falls back to a documented weighted-sum heuristic if scikit-learn is unavailable — the API reports which one scored each request
-- Risk score histogram showing vendor distribution
-- Radar chart for multi-dimensional vendor compliance profile
-- Real-time prediction via Data Entry page
-
-### 6. Dynamic Data Entry
-- Add new vendors with automatic risk prediction
-- Add new invoices with automatic mismatch detection
-- All changes persist to **MongoDB Atlas** (cloud)
-- All dashboards update in real-time after data entry
-
-### 7. Authentication & Settings
-- Login/Signup with MongoDB-backed user management
-- Configurable settings: notifications, reconciliation rules, display preferences
-- Dark/Light theme toggle
+Rather than forcing the Knowledge Graph into the predictive model, the architecture therefore uses the Knowledge Graph as an **investigative and relationship-context layer**.
 
 ---
 
-## 🏗️ Architecture
+# 🏗️ System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (React + Vite)                   │
-│  ┌──────────┐ ┌────────────┐ ┌───────────┐ ┌────────────┐  │
-│  │Dashboard │ │Reconcile   │ │Knowledge  │ │Data Entry  │  │
-│  │  (KPIs)  │ │  Engine    │ │  Graph    │ │& Prediction│  │
-│  └────┬─────┘ └─────┬──────┘ └─────┬─────┘ └──────┬─────┘  │
-│       │             │              │               │        │
-│  ┌────▼─────────────▼──────────────▼───────────────▼─────┐  │
-│  │              DataContext (React Context API)           │  │
-│  │        fetchAll() ←→ addVendor() ←→ addInvoice()      │  │
-│  └───────────────────────┬───────────────────────────────┘  │
-└──────────────────────────┼──────────────────────────────────┘
-                           │ REST API (HTTP)
-┌──────────────────────────▼──────────────────────────────────┐
-│                  Backend (FastAPI + Python)                  │
-│  ┌──────────┐  ┌────────────┐  ┌─────────────────────────┐  │
-│  │ CRUD API │  │Risk Predict│  │  Auth (Login/Signup)    │  │
-│  │ Vendors  │  │  Engine    │  │  bcrypt password hashes │  │
-│  │ Invoices │  │(RandomForest│  │                         │  │
-│  │ Alerts   │  │  Features) │  │                         │  │
-│  └────┬─────┘  └─────┬──────┘  └────────┬────────────────┘  │
-│       │              │                   │                   │
-│  ┌────▼──────────────▼───────────────────▼───────────────┐  │
-│  │              PyMongo Driver                           │  │
-│  └───────────────────────┬───────────────────────────────┘  │
-└──────────────────────────┼──────────────────────────────────┘
-                           │ MongoDB Wire Protocol
-┌──────────────────────────▼──────────────────────────────────┐
-│              MongoDB Atlas (Cloud Database)                  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ vendors  │ │ invoices │ │  alerts  │ │  users   │       │
-│  │ (20+)    │ │  (20+)   │ │   (5+)   │ │   (2+)   │       │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
-└─────────────────────────────────────────────────────────────┘
+```text
+                    GST TRANSACTION DATA
+                            │
+                            ▼
+                  RECONCILIATION ENGINE
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ▼                           ▼
+      HISTORICAL FEATURES          KNOWLEDGE GRAPH
+              │                           │
+              ▼                           ▼
+       TABULAR XGBOOST            INVESTIGATION LAYER
+              │                           │
+              ▼                           │
+       RISK PROBABILITIES                 │
+              │                           │
+              ▼                           ▼
+       ML RISK INDICATOR          NETWORK CONTEXT
+              │                           │
+              └─────────────┬─────────────┘
+                            ▼
+                     DECISION SUPPORT
+                            │
+                            ▼
+                        DASHBOARD
 ```
 
 ---
 
-## 🛠️ Tech Stack
+# 🔄 End-to-End Pipeline
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Frontend** | React 18 + Vite | SPA with hot module replacement |
-| **UI Components** | Framer Motion | Smooth page transitions & animations |
-| **Charts** | Chart.js + react-chartjs-2 | KPI visualizations, histograms, radar |
-| **Graph Viz** | react-force-graph-2d | Interactive knowledge graph rendering |
-| **State Management** | React Context API | Centralized data with useMemo optimization |
-| **Backend** | FastAPI (Python) | High-performance async REST API |
-| **Database** | MongoDB Atlas (Cloud) | Document store for vendors, invoices, alerts |
-| **Knowledge Graph** | Neo4j 5 (optional) | Graph-traversal reconciliation over GSTR filings |
-| **ML Model** | scikit-learn RandomForestClassifier | Vendor compliance risk prediction, served from the API |
-| **Auth** | bcrypt-hashed credentials in MongoDB | Login/signup; no plaintext passwords stored |
-| **Styling** | Vanilla CSS + CSS Variables | Dark/light theming, responsive design |
-
----
-
-## 📁 Project Structure
-
-```
-Intelligent-GST-Reconciliation-Using-Knowledge-Graphs/
-├── backend/
-│   ├── main.py               # FastAPI server — CRUD, auth, risk, graph endpoints
-│   ├── auth_utils.py         # bcrypt hashing, validation, plaintext migration
-│   ├── risk_model.py         # RandomForest vendor risk model (trained + served)
-│   ├── graph_sync.py         # MongoDB → Neo4j projection
-│   ├── reconcile.py          # Cypher graph-traversal reconciliation engine
-│   ├── ingestion.py          # ETL for real GSTR-1/2B/e-Invoice JSON → Neo4j
-│   ├── explain.py            # LangChain + Neo4j GraphRAG audit trails (optional)
-│   ├── verify_graph.py       # End-to-end check of the Neo4j path
-│   ├── requirements.txt      # Python dependencies
-│   └── .env                  # MONGODB_URI / NEO4J_* (NOT committed to git)
-│
-├── src/
-│   ├── context/
-│   │   ├── DataContext.jsx   # Central data provider — API fetching & derived state
-│   │   ├── ThemeContext.jsx  # Dark/light theme management
-│   │   └── AuthContext.jsx   # API-backed auth with offline fallback
-│   │
-│   ├── pages/
-│   │   ├── Dashboard.jsx     # Main KPI overview with charts
-│   │   ├── Reconciliation.jsx# Mismatch table + graph traversal engine panel
-│   │   ├── KnowledgeGraph.jsx# Interactive force-directed graph
-│   │   ├── ITCRisk.jsx       # ITC risk analysis & vendor scorecard
-│   │   ├── VendorCompliance.jsx # ML model performance & radar charts
-│   │   ├── AuditTrails.jsx   # Explainable audit explanations
-│   │   ├── DataEntry.jsx     # Add vendors/invoices & predict risk
-│   │   ├── Settings.jsx      # App configuration & preferences
-│   │   └── LoginPage.jsx     # Authentication page
-│   │
-│   ├── data/
-│   │   └── mockData.js       # Offline fallback dataset + static chart series
-│   │
-│   ├── App.jsx               # Root component — sidebar, routing, live status
-│   ├── App.css               # Layout overrides
-│   ├── index.css             # Design system — theme variables, components
-│   └── main.jsx              # React entry point
-│
-├── docker-compose.yml        # Neo4j + MongoDB for local development
-├── eslint.config.js          # ESLint configuration
-├── GST_ReconcileAI_Comprehensive_Report.pdf # Comprehensive project report
-├── index.html                # HTML entry point
-├── package-lock.json         # Locked npm dependencies
-├── package.json              # Node.js dependencies & scripts
-├── run_all.ps1               # PowerShell launcher script
-├── start_app.bat             # Batch launcher script
-├── total.md                  # Comprehensive technical documentation
-├── vite.config.js            # Vite bundler configuration
-└── README.md                 # Project documentation
+```text
+GST Data
+   ↓
+Data Normalization
+   ↓
+Invoice Reconciliation
+   ↓
+Anomaly Detection
+   ↓
+Historical Feature Engineering
+   ↓
+Temporal Train / Validation / Test Split
+   ↓
+Tabular XGBoost
+   ↓
+Risk Probability
+   ↓
+0–100 ML Risk Indicator
+   ↓
+ITC Exposure Analysis
+   ↓
+SHAP Explanation
+   ↓
+Knowledge Graph Investigation
+   ↓
+Risk × Exposure Prioritization
+   ↓
+Auditor Decision Support
 ```
 
 ---
 
-## 🚀 Setup & Installation
+# 📊 Research Dataset
 
-### Prerequisites
+The current benchmark is a controlled **hybrid/synthetic research dataset**.
 
-- **Node.js** ≥ 18.x ([download](https://nodejs.org/))
-- **Python** ≥ 3.10 ([download](https://www.python.org/))
-- **MongoDB Atlas** account (free tier works) — [cloud.mongodb.com](https://cloud.mongodb.com)
+| Component                  |               Value |
+| -------------------------- | ------------------: |
+| Vendors                    |               2,015 |
+| Invoices                   |             168,213 |
+| Simulated Periods          |           24 months |
+| Vendor-Period Observations |              46,345 |
+| Synthetic Invoices         |             168,163 |
+| Public Invoices            |                  50 |
+| Logged Anomaly Events      |              57,329 |
+| Target Classes             | Low / Medium / High |
 
-### 1. Clone the Repository
+### Temporal Coverage
+
+```text
+2024-04 → 2026-03
+```
+
+The dataset is partitioned chronologically to prevent future information from entering earlier predictions.
+
+---
+
+# 🧠 Machine Learning
+
+## Primary Production Model
+
+The production predictive model is:
+
+> **Tabular XGBoost**
+
+The model uses 19 validated tabular features derived from historical GST behavior.
+
+### Feature Groups
+
+#### Transaction
+
+* Invoice count
+* Total invoice value
+* Average invoice value
+* Total tax
+
+#### Reconciliation
+
+* Mismatch count
+* Mismatch rate
+* Duplicate invoice count
+* Missing e-invoice count
+* Missing e-way bill count
+
+#### Compliance
+
+* Missing GSTR-1 count
+* Missing GSTR-3B count
+* Filing delay
+* Late filing count
+
+#### ITC
+
+* ITC exposure
+* ITC exposure ratio
+
+Additional historical and interaction features are included where applicable.
+
+---
+
+# 📈 Model Comparison
+
+The system evaluated multiple approaches:
+
+1. Majority-class baseline
+2. Rule-based baseline
+3. Logistic Regression
+4. Random Forest
+5. Tabular XGBoost
+6. Graph-enhanced XGBoost
+
+The graph-enhanced model was evaluated using the same temporal experimental framework as the tabular model.
+
+---
+
+# 🔬 Phase 2.1 Result
+
+The five-seed experiment found essentially no meaningful improvement from adding graph-derived predictive features.
+
+| Metric            | Tabular XGBoost |   Graph XGBoost |
+| ----------------- | --------------: | --------------: |
+| Macro F1          | 0.7404 ± 0.0013 | 0.7400 ± 0.0026 |
+| Balanced Accuracy | 0.7616 ± 0.0021 | 0.7603 ± 0.0025 |
+| Accuracy          | 0.8712 ± 0.0010 | 0.8712 ± 0.0014 |
+| High-Risk Recall  | 0.6519 ± 0.0117 | 0.6473 ± 0.0132 |
+| Log Loss          | 0.4113 ± 0.0028 | 0.4104 ± 0.0026 |
+
+Paired statistical testing produced:
+
+```text
+Paired t-test:      p = 0.7648
+Wilcoxon test:      p = 0.8125
+```
+
+Therefore:
+
+> **The benchmark does not provide evidence that graph-derived predictive features improve the tabular XGBoost model.**
+
+---
+
+# 🕸️ Knowledge Graph
+
+The Knowledge Graph is intentionally separated from the predictive model.
+
+It provides:
+
+* Supplier relationships
+* Customer relationships
+* Counterparty counts
+* Reciprocal trading relationships
+* Transaction concentration
+* Cycle signals
+* Network structure
+* Relationship context
+
+The graph is **not used to generate a fraud score**.
+
+Instead, it helps an investigator understand the relationships surrounding a vendor.
+
+---
+
+# ⚠️ Temporal Leakage Prevention
+
+Temporal integrity is a core design requirement.
+
+For a prediction period `Tk`, only information available at or before `Tk` may be used.
+
+```text
+Allowed:
+
+transaction_date <= Tk
+
+filing_date <= Tk
+
+relationship.tax_period <= Tk
+```
+
+Future information is explicitly blocked.
+
+Graph snapshots also enforce:
+
+```text
+relationship.tax_period <= selected_period
+```
+
+This prevents future relationships from appearing in historical investigations.
+
+---
+
+# 🎯 Risk Indicator
+
+The production engine generates a deterministic 0–100 ML Risk Indicator:
+
+```text
+Risk Score =
+100 × (P(MEDIUM) × 0.5 + P(HIGH) × 1.0)
+```
+
+The score is then presented using application bands:
+
+|   Score | Band   |
+| ------: | ------ |
+|    0–33 | LOW    |
+|  >33–66 | MEDIUM |
+| >66–100 | HIGH   |
+
+The underlying model class and presentation band are intentionally kept separate.
+
+---
+
+# 💰 ITC Exposure
+
+ITC Exposure represents the financial quantity associated with reconciliation discrepancies.
+
+It is **not equivalent to fraud risk**.
+
+The system therefore keeps these concepts separate:
+
+```text
+Financial Quantity
+        │
+        └── ITC Exposure
+
+Behavioral Risk
+        │
+        └── ML Risk Indicator
+
+Operational Review
+        │
+        └── Priority
+
+Investigation Context
+        │
+        └── Knowledge Graph
+```
+
+---
+
+# 🚦 Risk × Exposure Prioritization
+
+The system combines behavioral risk and financial exposure to determine operational review priority.
+
+```text
+                 ITC EXPOSURE
+              Low     Medium     High
+           ┌────────┬──────────┬─────────┐
+Low Risk   │  LOW   │   LOW    │ MEDIUM  │
+           ├────────┼──────────┼─────────┤
+Med Risk   │  LOW   │  MEDIUM  │  HIGH   │
+           ├────────┼──────────┼─────────┤
+High Risk  │ MEDIUM │   HIGH   │ CRITICAL│
+           └────────┴──────────┴─────────┘
+```
+
+This allows investigators to prioritize cases based on both behavioral risk and financial materiality.
+
+---
+
+# 🔎 Explainability
+
+The system uses **native XGBoost Tree SHAP** for model explanations.
+
+For each vendor, the system can provide:
+
+* Top risk-increasing factors
+* Protective factors
+* Model probabilities
+* Contributing features
+* Historical risk trajectory
+
+Example interpretation:
+
+> Average filing delay contributed positively to the model's predicted risk.
+
+The system does **not** claim that a feature caused non-compliance.
+
+---
+
+# 🖥️ Dashboard
+
+The Phase 4 dashboard provides:
+
+### Dashboard
+
+* Total vendors
+* Total ITC exposure
+* High/Medium/Low risk distribution
+* High/Critical priority vendors
+* Exposure trends
+* Risk × Exposure matrix
+
+### Vendor Risk
+
+* Vendor search
+* Risk filtering
+* Priority filtering
+* Risk score sorting
+* ITC exposure sorting
+* Pagination
+
+### Vendor Detail
+
+* Risk score
+* Model probabilities
+* SHAP factors
+* Evidence
+* Risk history
+* Trend
+* ITC exposure
+
+### Investigation Workspace
+
+```text
+Vendor
+ ↓
+Risk
+ ↓
+ITC Exposure
+ ↓
+SHAP Factors
+ ↓
+Reconciliation
+ ↓
+Compliance
+ ↓
+Knowledge Graph
+ ↓
+Operational Priority
+```
+
+### Knowledge Graph Explorer
+
+* Interactive graph
+* Depth 1 / Depth 2
+* Temporal period selection
+* Supplier/customer relationships
+* Reciprocal relationships
+* Network context
+
+### ITC Analytics
+
+* Portfolio exposure
+* Average exposure
+* Exposure by risk
+* Historical exposure
+* Top vendors by exposure
+
+### Methodology
+
+Documents:
+
+* Dataset
+* ML methodology
+* Graph methodology
+* Phase 2.1 findings
+* Explainability
+* Research limitations
+* Ethical positioning
+
+---
+
+# 🛠️ Technology Stack
+
+## Backend
+
+* Python 3.11
+* FastAPI
+* Pydantic
+* Pandas
+* PyArrow
+* Scikit-learn
+* XGBoost
+* NetworkX
+* MongoDB
+* Neo4j
+
+## Frontend
+
+* React 19
+* Vite
+* Chart.js
+* react-force-graph-2d
+* Lucide Icons
+
+## Data
+
+* Parquet
+* JSON
+* MongoDB
+* Neo4j
+
+---
+
+# 🔌 API
+
+## Risk Prediction
+
+```http
+POST /risk/predict
+POST /api/risk/predict
+```
+
+## Risk Summary
+
+```http
+GET /risk/summary
+GET /api/risk/summary
+```
+
+## Vendor Portfolio
+
+```http
+GET /risk/vendors
+GET /api/risk/vendors
+```
+
+Supports:
+
+```text
+search
+risk_class
+priority
+min_score
+max_score
+min_exposure
+max_exposure
+sort
+page
+page_size
+```
+
+## Vendor Information
+
+```http
+GET /risk/vendor/{vendor_id}
+GET /risk/vendor/{vendor_id}/history
+```
+
+## Knowledge Graph
+
+```http
+GET /risk/vendor/{vendor_id}/graph
+GET /api/risk/vendor/{vendor_id}/graph
+```
+
+Supports:
+
+```text
+period
+depth
+```
+
+---
+
+# 🧪 Testing
+
+The complete automated test suite currently contains:
+
+```text
+106 tests
+106 passing
+0 failing
+```
+
+Run:
 
 ```bash
-git clone https://github.com/karthikeya0922/Intelligent-GST-Reconciliation-Using-Knowledge-Graphs.git
-cd Intelligent-GST-Reconciliation-Using-Knowledge-Graphs
+python -m pytest
 ```
 
-### 2. Install Frontend Dependencies
+The test coverage includes:
+
+* Data validation
+* Dataset scaling
+* Temporal splitting
+* Leakage detection
+* Feature engineering
+* Model training
+* Graph construction
+* Graph temporal leakage
+* Model persistence
+* Predictions
+* Explainability
+* Risk scoring
+* ITC exposure
+* Evidence generation
+* Risk history
+* API endpoints
+* Phase 4 integration
+
+---
+
+# 🏃 Running the Project
+
+## Backend
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start FastAPI:
+
+```bash
+uvicorn backend.main:app --reload
+```
+
+Backend:
+
+```text
+http://localhost:8000
+```
+
+API documentation:
+
+```text
+http://localhost:8000/docs
+```
+
+---
+
+## Frontend
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### 3. Install Backend Dependencies
-
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-### 4. Start the Databases
-
-The quickest path is Docker, which brings up both MongoDB and Neo4j:
-
-```bash
-docker compose up -d
-```
-
-| Service | URL | Credentials |
-|---|---|---|
-| Neo4j Browser | http://localhost:7474 | `neo4j` / `gstreconcile` |
-| Neo4j Bolt | bolt://localhost:7687 | `neo4j` / `gstreconcile` |
-| MongoDB | mongodb://localhost:27017 | none |
-
-#### Without Docker (Windows)
-
-Neo4j 5 needs **JDK 17 or 21** — it will not start on JDK 23/25. Portable setup,
-no installer and no admin rights:
-
-```bash
-# 1. JDK 21 (skip if you already have 17 or 21)
-curl -L -o jdk21.zip "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_windows_hotspot_21.0.5_11.zip"
-unzip -q jdk21.zip -d C:/neo4j
-
-# 2. Neo4j Community Server
-curl -L -o neo4j.zip "https://dist.neo4j.org/neo4j-community-5.26.0-windows.zip"
-unzip -q neo4j.zip -d C:/neo4j
-```
-
-Then, in PowerShell:
-
-```powershell
-$env:JAVA_HOME = "C:
-eo4j\jdk-21.0.5+11"
-cd C:
-eo4j
-eo4j-community-5.26.0
-.in
-eo4j-admin.bat dbms set-initial-password gstreconcile   # once, before first start
-.in
-eo4j.bat console
-```
-
-MongoDB can likewise be installed directly from
-[mongodb.com/try/download/community](https://www.mongodb.com/try/download/community).
-
----
-
-Both are **optional**. The app degrades gracefully:
-
-- **No MongoDB** → the frontend serves its bundled mock dataset
-- **No Neo4j** → graph endpoints report offline and reconciliation falls back to
-  MongoDB label matching. The sidebar shows the real state of each subsystem, so
-  you can always see which engine produced a result.
-
-### 5. Configure Environment Variables
-
-Create a `backend/.env` file:
-
-```env
-# MongoDB — local Docker, or an Atlas connection string
-MONGODB_URI=mongodb://localhost:27017
-
-# Neo4j — matches docker-compose.yml
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=gstreconcile
-```
-
-For MongoDB Atlas instead of local Docker:
-
-```env
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
-```
-
-> ⚠️ Never commit private credentials or secrets to Git.
-
----
-
-## ▶️ Running the Application
-
-### ⚡ Quick Start (Copy & Paste Terminal Command)
-
-Copy and paste the appropriate command below into your terminal from the root folder to install dependencies and run the entire application at once:
-
-#### 🔹 Windows PowerShell
-```powershell
-npm install; cd backend; pip install -r requirements.txt; Start-Process python -ArgumentList "main.py"; cd ..; npm run dev
-```
-
-#### 🔹 Windows Command Prompt (CMD)
-```cmd
-npm install && start cmd /k "cd backend && pip install -r requirements.txt && python main.py" && npm run dev
-```
-
-#### 🔹 macOS / Linux / Git Bash
-```bash
-npm install && (cd backend && pip install -r requirements.txt && python main.py &) && npm run dev
-```
-
-#### 🔹 Or Run via Script
-```powershell
-.\run_all.ps1
-```
-
----
-
-### Step-by-Step Manual Execution
-
-If you prefer to start services individually in separate terminals:
-
-#### Terminal 1 — Start Backend
-```bash
-cd backend
-python main.py
-```
-
-The API server starts at **http://localhost:8000**. On first run it:
-
-1. Seeds MongoDB with 20 vendors, 20 invoices, 5 alerts and 2 user accounts
-2. Migrates any legacy plaintext passwords to bcrypt
-3. Trains and persists the vendor risk model to `backend/vendor_risk_model.pkl`
-   (a few seconds; subsequent boots load it from disk)
-
-Check what actually came up:
-
-```bash
-curl http://localhost:8000/            # subsystem summary
-curl http://localhost:8000/api/model/info    # real model metrics
-curl http://localhost:8000/api/graph/status  # Neo4j connectivity
-```
-
-**Default login credentials:**
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@gstreconcile.ai` | `admin123` |
-| Auditor | `auditor@gstreconcile.ai` | `auditor123` |
-
-These are hashed with bcrypt on first boot. Any plaintext passwords left by an
-earlier version are migrated automatically at startup.
-
-### Start the Frontend (Terminal 2)
+Start development server:
 
 ```bash
 npm run dev
 ```
 
-The app starts at **http://localhost:5173** (or 5174 if 5173 is busy).
+The frontend communicates with the backend through:
 
-### Populate the Knowledge Graph (optional)
-
-With Neo4j running, project the MongoDB data into it and verify the graph engine
-end to end:
-
-```bash
-cd backend
-python verify_graph.py
-```
-
-This syncs Mongo → Neo4j, runs the Cypher reconciliation, and cross-checks its
-structural findings against MongoDB's own labels. You can also do the sync from
-the UI — **Reconciliation → Sync Graph**, then **Run Reconciliation**. The result
-panel reports which engine ran (`neo4j-graph-traversal` or `mongodb-fallback`).
-
----
-
-## 🔗 The Multi-Hop ITC Chain
-
-A flat GSTR-1 vs GSTR-2B table match answers one question: *did the supplier
-report the invoice?* Reporting is not payment. The graph asks the second question
-too, by traversing through the supplier to the return where tax is actually paid:
-
-```
-(Vendor)-[:ISSUED_INVOICE]->(Invoice)-[:REPORTED_IN]->(GSTR-1)     declared
-(Vendor)-[:FILED_RETURN]->(GSTR3B {filed: false})                  but never paid
-```
-
-An invoice on that path looks clean one hop out and fails on the second. This is
-`Supplier GSTR-3B Not Filed` — ITC blocked under **s.16(2)(c)**, invisible to
-table matching.
-
-The Purchase Register closes the loop on the buyer's side, in both directions:
-
-| Finding | Meaning |
-|---|---|
-| In GSTR-2B, no `:RECORDED_IN_PR` edge | Supplier declared a supply the books never recorded — unbooked liability, or an invoice raised against your GSTIN |
-| In the PR, absent from GSTR-2B | Purchase booked but no credit available — reverse any ITC taken |
-
----
-
-## 🔍 How the Reconciliation Engine Classifies Findings
-
-Each finding carries a `detection` field, because not every check is equally
-graph-native:
-
-| Detection | Meaning | Examples |
-|---|---|---|
-| `structural` | Derived purely from the shape of the graph — an absent edge. This is what the knowledge graph genuinely buys you. | Missing in GSTR-1, E-Way Bill Missing, e-Invoice Missing |
-| `field-level` | Compares the supplier's filing against the buyer's copy of the same invoice. Requires the dual-source ingestion path (`ingestion.py`). | Tax Amount Mismatch, HSN Mismatch |
-| `label-carried` | The mismatch was determined upstream and is carried on the record. Used when the graph is projected from the single-source MongoDB store. | Any type, when running the Mongo fallback |
-
----
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/vendors` | List all vendors with risk scores |
-| `POST` | `/api/vendors` | Add vendor + auto risk prediction |
-| `GET` | `/api/invoices` | List all invoices with match status |
-| `POST` | `/api/invoices` | Add invoice + auto mismatch detection |
-| `GET` | `/api/alerts` | List system alerts |
-| `GET` | `/api/stats` | Dashboard KPI aggregations |
-| `POST` | `/api/predict-risk` | Score a vendor with the RandomForest; returns the feature vector and its drivers |
-| `GET` | `/api/model/info` | Which model is serving, with its real held-out metrics |
-| `GET` | `/api/graph/status` | Neo4j connectivity, node and relationship counts |
-| `POST` | `/api/graph/sync` | Project the MongoDB contents into Neo4j |
-| `GET` | `/api/reconcile` | Graph-traversal reconciliation (`?period=2025-08`), Mongo fallback |
-| `GET` | `/api/reconcile/evidence/{id}` | Graph neighbourhood backing a flagged invoice |
-| `GET` | `/api/audit-trail/{id}` | Generated audit trail for any flagged invoice |
-| `POST` | `/api/login` | Authenticate against bcrypt-hashed credentials |
-| `POST` | `/api/signup` | Register a new user (password hashed on write) |
-| `POST` | `/api/profile` | Update display name / email |
-| `POST` | `/api/change-password` | Change password, verifying the current one |
-
-### Example: Add a Vendor
-
-```bash
-curl -X POST http://localhost:8000/api/vendors \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Corp",
-    "gstin": "29ABCDE1234F1Z5",
-    "state": "Karnataka",
-    "totalTransactions": 50,
-    "missedFilings": 3,
-    "avgDaysLate": 8
-  }'
-```
-
-**Response:**
-```json
-{
-  "vendor": {
-    "id": "V021",
-    "name": "Test Corp",
-    "riskScore": 0.62,
-    "status": "High Risk"
-  }
-}
+```text
+VITE_API_URL
 ```
 
 ---
 
-## 📊 Deliverables
+# 📁 Project Structure
 
-This project addresses **5 core deliverables** for the GST Reconciliation hackathon:
-
-| # | Deliverable | Implementation | Page |
-|---|---|---|---|
-| 1 | **Knowledge Graph Schema & Data Model** | Force-directed graph with 5 entity types, 6 relationship types, layer toggles | Knowledge Graph |
-| 2 | **Graph-Traversal Reconciliation** | Automated GSTR-1 ↔ GSTR-2B matching, mismatch classification, Cypher paths | Reconciliation |
-| 3 | **ITC Risk Scoring** | Real-time at-risk ITC calculation, vendor scoring, distribution charts | ITC Risk Dashboard |
-| 4 | **Explainable Audit Trails** | NLP-style summaries, evidence lists, graph paths, recommendations | Audit Trail |
-| 5 | **Predictive Compliance Model** | Random Forest (76.8% held-out acc, 0.853 AUC), feature importance, risk histogram, radar chart | Vendor Compliance |
+```text
+Intelligent-GST-Reconciliation-Using-Knowledge-Graphs/
+│
+├── backend/
+│   ├── main.py
+│   └── ml/
+│       ├── features.py
+│       ├── graph_features.py
+│       ├── graph_investigation.py
+│       ├── risk_engine.py
+│       ├── evidence.py
+│       ├── explanation.py
+│       ├── data_store.py
+│       ├── train.py
+│       └── predict.py
+│
+├── data/
+│   ├── processed/
+│   └── reports/
+│
+├── models/
+│   └── production/
+│
+├── src/
+│   ├── api/
+│   ├── components/
+│   └── pages/
+│
+├── tests/
+│   ├── data/
+│   ├── ml/
+│   └── risk_engine/
+│
+├── docs/
+│
+├── requirements.txt
+├── package.json
+└── README.md
+```
 
 ---
 
-## 🖼️ Screenshots
+# 🔐 Security & Production Hardening
 
-> Navigate to `http://localhost:5173` after starting both servers to see the live application.
+The system implements:
 
-| Page | Description |
-|---|---|
-| **Dashboard** | 6 KPI cards, ITC trend line, mismatch donut, compliance bar chart, alerts |
-| **Reconciliation** | Filterable invoice table with match status, risk levels, Cypher path detail |
-| **Knowledge Graph** | Interactive force graph with vendor/invoice/GSTR nodes, layer toggles, zoom |
-| **ITC Risk** | At-risk ITC totals, top vendors bar chart, risk pie, vendor scorecard table |
-| **Vendor Compliance** | ML model metrics, feature importance, risk histogram, radar profile |
-| **Audit Trail** | Expandable audit cards with AI explanations, evidence, graph paths |
-| **Data Entry** | Add invoice/vendor forms, real-time risk prediction, MongoDB persistence |
-
----
-
-## 👥 Team
-
-| Name | Role |
-|---|---|
-| **Karthikeya** | Full-Stack Developer & ML Engineer |
-
+* Environment-based configuration
+* No hardcoded database credentials
+* Backend-only database communication
+* Pydantic request validation
+* Sanitized API errors
+* Bounded pagination
+* Limited graph depth
+* Temporal validation
+* Server-side aggregation
 
 ---
 
-<div align="center">
+# ⚠️ Research Limitations
 
-</div>
+This project is currently a **research prototype**, not a production statutory tax-compliance system.
+
+### Dataset limitation
+
+The benchmark is controlled and hybrid/synthetic.
+
+External validation with appropriately labelled real-world GST data is required.
+
+### Model limitation
+
+The model predicts behavioral risk indicators rather than confirmed fraud.
+
+### Knowledge Graph limitation
+
+The current benchmark did not demonstrate statistically significant predictive improvement from graph-derived features.
+
+The graph is therefore used for investigation and relationship context.
+
+### Generalization limitation
+
+Performance on this benchmark should not be interpreted as guaranteed performance on real-world GST populations.
+
+---
+
+# ⚖️ Ethical Positioning
+
+This system provides:
+
+> **Experimental ML-based risk indicators and decision-support information.**
+
+It does not provide:
+
+* Fraud determinations
+* Tax liability determinations
+* Statutory non-compliance determinations
+* Legal conclusions
+
+Any real-world deployment would require appropriate:
+
+* Real-world validation
+* Domain expert review
+* Governance
+* Privacy controls
+* Regulatory compliance
+* Human oversight
+
+---
+
+# 📚 Research Documentation
+
+Detailed methodology is available in:
+
+```text
+docs/
+├── ml_target_definition.md
+├── ml_features.md
+├── model_training.md
+├── model_evaluation.md
+├── graph_features.md
+├── graph_temporal_methodology.md
+├── explainability.md
+├── phase2_ml_report.md
+├── risk_scoring_methodology.md
+├── itc_prioritization_methodology.md
+├── risk_engine_architecture.md
+├── risk_explainability.md
+├── graph_investigation.md
+├── risk_api.md
+├── phase4_dashboard.md
+├── dashboard_architecture.md
+├── api_integration.md
+├── investigation_workflow.md
+├── production_hardening.md
+└── research_limitations.md
+```
+
+---
+
+# 🧭 Project Phases
+
+```text
+Phase 1
+  ↓
+GST Data Foundation & Reconciliation
+  ↓
+Phase 1.5
+  ↓
+Hybrid Dataset Scaling & Validation
+  ↓
+Phase 2
+  ↓
+ML Risk Prediction & Graph-Enhanced ML
+  ↓
+Phase 2.1
+  ↓
+Statistical Graph Contribution Analysis
+  ↓
+Phase 3
+  ↓
+Production ITC Risk Engine & Explainability
+  ↓
+Phase 4
+  ↓
+Risk Intelligence Dashboard & Investigation Platform
+```
+
+---
+
+# 📌 Current Status
+
+| Component                   | Status        |
+| --------------------------- | ------------- |
+| GST Data Pipeline           | ✅ Complete    |
+| Reconciliation Engine       | ✅ Complete    |
+| Dataset Validation          | ✅ Complete    |
+| ML Risk Prediction          | ✅ Complete    |
+| Temporal Leakage Protection | ✅ Complete    |
+| Graph Investigation         | ✅ Complete    |
+| Explainability              | ✅ Complete    |
+| ITC Exposure Engine         | ✅ Complete    |
+| Risk Prioritization         | ✅ Complete    |
+| REST API                    | ✅ Complete    |
+| Dashboard                   | ✅ Complete    |
+| Investigation Workspace     | ✅ Complete    |
+| Knowledge Graph Explorer    | ✅ Complete    |
+| Methodology Documentation   | ✅ Complete    |
+| Automated Tests             | ✅ 106 Passing |
+| Frontend Production Build   | ✅ Passing     |
+
+---
+
+# 🚀 Future Work
+
+Potential future research directions include:
+
+* Validation on appropriately labelled real-world GST datasets
+* Larger and more diverse vendor populations
+* External temporal validation
+* Improved network representations
+* Graph representation learning if future datasets demonstrate sufficient topology
+* Model monitoring and drift detection
+* Human-in-the-loop evaluation
+* Fairness and subgroup performance analysis
+* Production-scale deployment
+
+These are future research directions and are **not part of the current validated system**.
+
+---
+
+# 👨💻 Research Position
+
+The central contribution of this project is not simply adding a Knowledge Graph to an ML model.
+
+Instead, the project experimentally evaluates whether graph-derived information improves predictive performance and, based on the current benchmark, finds that it does not.
+
+The resulting architecture separates:
+
+```text
+Prediction
+    ↓
+Tabular XGBoost
+
+Investigation
+    ↓
+Knowledge Graph
+
+Financial Materiality
+    ↓
+ITC Exposure
+
+Operational Decision Support
+    ↓
+Risk × Exposure Priority
+```
+
+This separation provides a more transparent and scientifically defensible approach to GST risk intelligence.
+
+---
+
+## ⚠️ Disclaimer
+
+This project is an experimental research system.
+
+> **This system provides experimental ML-based risk indicators and decision-support information. It is not a determination of fraud, tax liability, or statutory non-compliance. Results are demonstrated on a controlled hybrid research benchmark. External validation using appropriately labelled real-world data is required before operational deployment.**
