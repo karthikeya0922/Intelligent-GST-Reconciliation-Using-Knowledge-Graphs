@@ -4,7 +4,7 @@ echo ====================================================
 echo ⚡ Starting GST ReconcileAI Full Stack Environment
 echo ====================================================
 
-set PROJECT_ROOT=c:\Users\karth\OneDrive\Desktop\gst-quadric it\Intelligent-GST-Reconciliation-Using-Knowledge-Graphs
+set PROJECT_ROOT=%~dp0
 
 echo [1/3] Starting Neo4j Knowledge Graph...
 start "Neo4j Server" cmd /c "set JAVA_HOME=C:\neo4j\jdk-21.0.5+11&& C:\neo4j\neo4j-community-5.26.0\bin\neo4j.bat console"

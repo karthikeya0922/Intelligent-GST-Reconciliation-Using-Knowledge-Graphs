@@ -1,0 +1,28 @@
+# Large data directories and files
+data/raw/
+data/processed/*.parquet
+data/processed/*.csv
+!data/sample/
+!data/reports/
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.env
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
