@@ -1,0 +1,64 @@
+{
+  "model_version": "3.0.0",
+  "model_name": "Tabular XGBoost (Frozen)",
+  "dataset_version": "1.5.0",
+  "feature_version": "3.0",
+  "training_period": "2024-05 to 2025-07",
+  "validation_period": "2025-08 to 2025-11",
+  "test_period": "2025-12 to 2026-03",
+  "feature_names": [
+    "invoice_count",
+    "total_invoice_value",
+    "average_invoice_value",
+    "total_tax",
+    "mismatch_count",
+    "mismatch_rate",
+    "duplicate_invoice_count",
+    "missing_einvoice_count",
+    "missing_eway_bill_count",
+    "missing_gstr1_count",
+    "missing_gstr3b_count",
+    "late_filing_count",
+    "average_filing_delay",
+    "itc_exposure",
+    "previous_period_risk",
+    "itc_exposure_ratio",
+    "tax_per_invoice",
+    "unfiled_return_ratio",
+    "mismatch_severity_index"
+  ],
+  "class_names": [
+    "LOW",
+    "MEDIUM",
+    "HIGH"
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.05,
+    "max_depth": 6,
+    "n_estimators": 120,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8
+  },
+  "metrics": {
+    "macro_f1_mean": 0.7404,
+    "macro_f1_std": 0.0013,
+    "balanced_accuracy_mean": 0.7616,
+    "balanced_accuracy_std": 0.0021,
+    "high_risk_recall_mean": 0.6519,
+    "high_risk_recall_std": 0.0117,
+    "high_risk_f1_mean": 0.5605,
+    "high_risk_f1_std": 0.0033,
+    "accuracy_mean": 0.8712,
+    "accuracy_std": 0.001,
+    "log_loss_mean": 0.4113,
+    "brier_score_mean": 0.2072
+  },
+  "frozen_date": "2026-09-07",
+  "random_seeds_evaluated": [
+    42,
+    123,
+    2024,
+    999,
+    7
+  ]
+}

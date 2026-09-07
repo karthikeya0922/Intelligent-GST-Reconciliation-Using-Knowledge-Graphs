@@ -1,0 +1,62 @@
+{
+  "model_version": "2.0.0",
+  "dataset_version": "1.5.0",
+  "feature_version": "2.0",
+  "training_period": "2024-05 to 2025-07",
+  "validation_period": "2025-08 to 2025-11",
+  "test_period": "2025-12 to 2026-03",
+  "best_model_type": "XGBClassifier (Tabular + Knowledge Graph Features)",
+  "feature_names": [
+    "invoice_count",
+    "total_invoice_value",
+    "average_invoice_value",
+    "total_tax",
+    "mismatch_count",
+    "mismatch_rate",
+    "duplicate_invoice_count",
+    "missing_einvoice_count",
+    "missing_eway_bill_count",
+    "missing_gstr1_count",
+    "missing_gstr3b_count",
+    "late_filing_count",
+    "average_filing_delay",
+    "itc_exposure",
+    "previous_period_risk",
+    "itc_exposure_ratio",
+    "tax_per_invoice",
+    "unfiled_return_ratio",
+    "mismatch_severity_index",
+    "graph_in_degree",
+    "graph_out_degree",
+    "graph_total_degree",
+    "graph_degree_centrality",
+    "graph_pagerank",
+    "graph_clustering_coefficient",
+    "reciprocal_trade_count",
+    "cycle_participation",
+    "high_risk_neighbor_count",
+    "neighbor_average_risk"
+  ],
+  "class_names": [
+    "Low",
+    "Medium",
+    "High"
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.05,
+    "max_depth": 6
+  },
+  "metrics": {
+    "macro_f1": 0.7359,
+    "balanced_accuracy": 0.757,
+    "high_risk_recall": 0.6478,
+    "high_risk_f1": 0.5515,
+    "brier_score": 0.2064
+  },
+  "gnn_gate": {
+    "gnn_recommendation": "NOT JUSTIFIED",
+    "delta_macro_f1": -0.005,
+    "rationale": "Graph features do not provide sufficient incremental gain beyond tabular compliance features to warrant the additional parameter complexity, latency, and operational overhead of a deep GNN. Tabular + Graph-feature XGBoost remains the optimal architecture."
+  },
+  "random_seed": 42
+}
