@@ -40,8 +40,14 @@ import './App.css';
 function ThemeToggleButton() {
   const { theme, toggleTheme } = useTheme();
   return (
-    <button className="theme-toggle-btn" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+    <button
+      type="button"
+      className="theme-toggle-btn"
+      onClick={toggleTheme}
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+    >
+      {theme === 'dark' ? <Sun size={18} strokeWidth={2.2} /> : <Moon size={18} strokeWidth={2.2} />}
     </button>
   );
 }
