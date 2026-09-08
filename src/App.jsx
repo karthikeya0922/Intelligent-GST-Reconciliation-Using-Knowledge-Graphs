@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,7 +15,9 @@ import {
   LogOut,
   PlusCircle,
   BookOpen,
-  DollarSign
+  DollarSign,
+  PanelLeftClose,
+  PanelLeft
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -37,7 +40,7 @@ import LoginPage from './pages/LoginPage';
 import DataEntry from './pages/DataEntry';
 import './App.css';
 
-function ThemeToggleButton() {
+function ThemeToggleButton({ collapsed = false }) {
   const { theme, toggleTheme } = useTheme();
   return (
     <button
@@ -46,90 +49,130 @@ function ThemeToggleButton() {
       onClick={toggleTheme}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      data-tooltip={collapsed ? `${theme === 'dark' ? 'Light' : 'Dark'} Mode` : undefined}
     >
       {theme === 'dark' ? <Sun size={18} strokeWidth={2.2} /> : <Moon size={18} strokeWidth={2.2} />}
     </button>
   );
 }
 
-function Sidebar() {
+function Sidebar({ collapsed, toggleSidebar }) {
   const { user, logout } = useAuth();
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <h1>⚡ GST ReconcileAI</h1>
-        <p>Risk Intelligence & Knowledge Graph</p>
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      <div className={`sidebar-logo ${collapsed ? 'collapsed' : ''}`}>
+        {!collapsed && (
+          <div className="sidebar-brand">
+            <h1>⚡ GST ReconcileAI</h1>
+            <p>Risk Intelligence & Knowledge Graph</p>
+          </div>
+        )}
+        <button
+          type="button"
+          className="sidebar-toggle-btn"
+          onClick={toggleSidebar}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <PanelLeft size={18} strokeWidth={2} /> : <PanelLeftClose size={18} strokeWidth={2} />}
+        </button>
       </div>
 
       {/* User info */}
-      <div className="sidebar-user">
-        <div className="sidebar-avatar">{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
-        <div className="sidebar-user-info">
-          <span className="sidebar-user-name">{user?.name}</span>
-          <span className="sidebar-user-role">{user?.role}</span>
+      <div className={`sidebar-user ${collapsed ? 'collapsed' : ''}`}>
+        <div className="sidebar-avatar" title={`${user?.name || 'User'} (${user?.role || 'Guest'})`}>
+          {user?.name?.charAt(0).toUpperCase() || 'U'}
         </div>
-        <ThemeToggleButton />
+        {!collapsed && (
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">{user?.name}</span>
+            <span className="sidebar-user-role">{user?.role}</span>
+          </div>
+        )}
+        <ThemeToggleButton collapsed={collapsed} />
       </div>
 
       <nav className="sidebar-nav">
-        <div className="nav-section-label">Risk Intelligence</div>
-        <NavLink to="/" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <LayoutDashboard className="nav-icon" />
-          Dashboard
+        {!collapsed ? (
+          <div className="nav-section-label">Risk Intelligence</div>
+        ) : (
+          <div className="sidebar-nav-divider" />
+        )}
+        <NavLink to="/" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Dashboard">
+          <LayoutDashboard className="nav-icon nav-icon-dashboard" />
+          {!collapsed && <span className="nav-label">Dashboard</span>}
         </NavLink>
-        <NavLink to="/vendors" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Users className="nav-icon" />
-          Vendor Risk Directory
+        <NavLink to="/vendors" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Vendor Risk Directory">
+          <Users className="nav-icon nav-icon-vendors" />
+          {!collapsed && <span className="nav-label">Vendor Risk Directory</span>}
         </NavLink>
-        <NavLink to="/investigation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <FileSearch className="nav-icon" />
-          Investigation Workspace
+        <NavLink to="/investigation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Investigation Workspace">
+          <FileSearch className="nav-icon nav-icon-investigation" />
+          {!collapsed && <span className="nav-label">Investigation Workspace</span>}
         </NavLink>
-        <NavLink to="/itc-exposure" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <DollarSign className="nav-icon" />
-          ITC Exposure Analytics
+        <NavLink to="/itc-exposure" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="ITC Exposure Analytics">
+          <DollarSign className="nav-icon nav-icon-itc" />
+          {!collapsed && <span className="nav-label">ITC Exposure Analytics</span>}
         </NavLink>
-        <NavLink to="/graph" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Network className="nav-icon" />
-          Knowledge Graph
-        </NavLink>
-
-        <div className="nav-section-label">Reconciliation & Compliance</div>
-        <NavLink to="/reconciliation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <GitCompare className="nav-icon" />
-          Reconciliation
-        </NavLink>
-        <NavLink to="/vendor-compliance" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <ShieldAlert className="nav-icon" />
-          Vendor Compliance
-        </NavLink>
-        <NavLink to="/audit-trails" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Activity className="nav-icon" />
-          Audit Trails
+        <NavLink to="/graph" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Knowledge Graph">
+          <Network className="nav-icon nav-icon-graph" />
+          {!collapsed && <span className="nav-label">Knowledge Graph</span>}
         </NavLink>
 
-        <div className="nav-section-label">System & Tools</div>
-        <NavLink to="/data-entry" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <PlusCircle className="nav-icon" />
-          Data Entry
+        {!collapsed ? (
+          <div className="nav-section-label">Reconciliation & Compliance</div>
+        ) : (
+          <div className="sidebar-nav-divider" />
+        )}
+        <NavLink to="/reconciliation" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Reconciliation">
+          <GitCompare className="nav-icon nav-icon-reconciliation" />
+          {!collapsed && <span className="nav-label">Reconciliation</span>}
         </NavLink>
-        <NavLink to="/methodology" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <BookOpen className="nav-icon" />
-          Methodology & ML Spec
+        <NavLink to="/vendor-compliance" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Vendor Compliance">
+          <ShieldAlert className="nav-icon nav-icon-compliance" />
+          {!collapsed && <span className="nav-label">Vendor Compliance</span>}
         </NavLink>
-        <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <SettingsIcon className="nav-icon" />
-          Settings
+        <NavLink to="/audit-trails" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Audit Trails">
+          <Activity className="nav-icon nav-icon-audit" />
+          {!collapsed && <span className="nav-label">Audit Trails</span>}
+        </NavLink>
+
+        {!collapsed ? (
+          <div className="nav-section-label">System & Tools</div>
+        ) : (
+          <div className="sidebar-nav-divider" />
+        )}
+        <NavLink to="/data-entry" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Data Entry">
+          <PlusCircle className="nav-icon nav-icon-data-entry" />
+          {!collapsed && <span className="nav-label">Data Entry</span>}
+        </NavLink>
+        <NavLink to="/methodology" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Methodology & ML Spec">
+          <BookOpen className="nav-icon nav-icon-methodology" />
+          {!collapsed && <span className="nav-label">Methodology & ML Spec</span>}
+        </NavLink>
+        <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-tooltip="Settings">
+          <SettingsIcon className="nav-icon nav-icon-settings" />
+          {!collapsed && <span className="nav-label">Settings</span>}
         </NavLink>
       </nav>
 
-      <SystemStatus />
+      <SystemStatus collapsed={collapsed} />
     </aside>
   );
 }
 
-function SystemStatus() {
+function SystemStatus({ collapsed = false }) {
   const { apiOnline, graphStatus, modelInfo } = useData();
+
+  if (collapsed) {
+    return (
+      <div className="sidebar-footer collapsed" title={apiOnline ? 'API & Backend Online' : 'API Offline (Fallback)'}>
+        <div className="status-indicator-compact">
+          <span className="status-dot" style={{ background: apiOnline ? '#22c55e' : '#ef4444' }}></span>
+        </div>
+      </div>
+    );
+  }
 
   const rows = [
     {
@@ -167,6 +210,17 @@ function SystemStatus() {
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem('gst-sidebar-collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('gst-sidebar-collapsed', String(next));
+      return next;
+    });
+  };
 
   if (loading) return null;
 
@@ -180,8 +234,8 @@ function AppContent() {
   }
 
   return (
-    <div className="app-layout">
-      <Sidebar />
+    <div className={`app-layout ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar collapsed={collapsed} toggleSidebar={toggleSidebar} />
       <main className="main-content">
         <div className="page-content">
           <Routes>

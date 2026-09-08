@@ -49,6 +49,7 @@
 
   /* Spacing */
   --sidebar-width: 260px;
+  --sidebar-collapsed-width: 68px;
   --header-height: 64px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -101,6 +102,13 @@ body {
   background: var(--bg-primary);
   position: relative;
   overflow-x: hidden;
+  transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-layout.sidebar-collapsed .main-content {
+  margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+  max-width: calc(100% - var(--sidebar-collapsed-width));
 }
 
 .main-content::before {
@@ -136,14 +144,30 @@ body {
   flex-direction: column;
   z-index: 100;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
 }
 
 .sidebar-logo {
-  padding: 20px 20px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  gap: 8px;
 }
 
-.sidebar-logo h1 {
+.sidebar-logo.collapsed {
+  padding: 14px 0;
+  justify-content: center;
+}
+
+.sidebar-brand h1 {
   font-size: 1.15rem;
   font-weight: 700;
   background: linear-gradient(135deg, #00f59b, #38bdf8);
@@ -151,18 +175,79 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-.sidebar-logo p {
-  font-size: 0.75rem;
+.sidebar-brand p {
+  font-size: 0.72rem;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 2px;
   font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Sidebar toggle button (ChatGPT style) */
+.sidebar-toggle-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0 !important;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  transform: scale(1.06);
+}
+
+.sidebar-toggle-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  display: block !important;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  transition: all 0.28s ease;
+}
+
+.sidebar-user.collapsed {
+  flex-direction: column;
+  padding: 12px 6px;
+  gap: 8px;
+  justify-content: center;
 }
 
 .sidebar-nav {
   flex: 1;
   padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: padding 0.28s ease;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  padding: 8px 6px;
 }
 
 .nav-section-label {
@@ -172,6 +257,14 @@ body {
   color: var(--text-muted);
   padding: 16px 12px 8px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.sidebar-nav-divider {
+  height: 1px;
+  background: var(--border-primary);
+  margin: 8px 6px;
+  opacity: 0.5;
 }
 
 .nav-item {
@@ -188,6 +281,16 @@ body {
   margin-bottom: 2px;
   position: relative;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+  width: 44px;
+  height: 44px;
+  margin: 4px auto;
+  border-radius: 8px;
 }
 
 .nav-item:hover {
@@ -213,20 +316,90 @@ body {
   border-radius: 0 3px 3px 0;
 }
 
+.sidebar.collapsed .nav-item.active::before {
+  left: -6px;
+}
+
+/* Floating tooltip in collapsed mode (ChatGPT style) */
+.sidebar.collapsed .nav-item::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.92);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  z-index: 999;
+}
+
+[data-theme="light"] .sidebar.collapsed .nav-item::after {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.collapsed .nav-item:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) scale(1);
+}
+
 .nav-item .nav-icon {
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   flex-shrink: 0;
-  opacity: 0.8;
+  transition: transform 0.15s ease;
 }
 
-.nav-item.active .nav-icon {
-  opacity: 1;
+.nav-item:hover .nav-icon {
+  transform: scale(1.08);
 }
+
+/* Vibrant Icon Accents (from spec) */
+.nav-icon-dashboard { color: #3b82f6 !important; }
+.nav-icon-vendors { color: #10b981 !important; }
+.nav-icon-investigation { color: #8b5cf6 !important; }
+.nav-icon-itc { color: #059669 !important; }
+.nav-icon-graph { color: #2563eb !important; }
+.nav-icon-reconciliation { color: #f97316 !important; }
+.nav-icon-compliance { color: #ef4444 !important; }
+.nav-icon-audit { color: #0ea5e9 !important; }
+.nav-icon-data-entry { color: #ec4899 !important; }
+.nav-icon-methodology { color: #6366f1 !important; }
+.nav-icon-settings { color: #94a3b8 !important; }
 
 .sidebar-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--border-primary);
+}
+
+.sidebar-footer.collapsed {
+  padding: 14px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.status-indicator-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  padding: 8px;
 }
 
 .sidebar-footer .status-indicator {
