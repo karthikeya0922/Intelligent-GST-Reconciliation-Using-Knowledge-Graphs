@@ -470,7 +470,13 @@ export default function KnowledgeGraph() {
                             <button
                                 key={key}
                                 className={`btn ${layers[key] ? 'btn-primary' : 'btn-secondary'}`}
-                                style={{ padding: '4px 12px', fontSize: '0.75rem', gap: '5px', opacity: layers[key] ? 1 : 0.5 }}
+                                style={{
+                                    padding: '4px 12px',
+                                    fontSize: '0.75rem',
+                                    gap: '5px',
+                                    opacity: layers[key] ? 1 : 0.7,
+                                    border: layers[key] ? '1px solid var(--accent-primary)' : '1px solid var(--border-primary)',
+                                }}
                                 onClick={() => toggleLayer(key)}
                             >
                                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: nodeColors[key] }}></div>
@@ -484,16 +490,21 @@ export default function KnowledgeGraph() {
                         {orphanCount > 0 && (
                             <button
                                 className={`btn ${hideOrphans ? 'btn-primary' : 'btn-secondary'}`}
-                                style={{ padding: '4px 10px', fontSize: '0.72rem', gap: '4px' }}
+                                style={{
+                                    padding: '4px 10px',
+                                    fontSize: '0.72rem',
+                                    gap: '4px',
+                                    border: hideOrphans ? '1px solid var(--accent-primary)' : '1px solid var(--border-primary)',
+                                }}
                                 onClick={() => setHideOrphans(v => !v)}
                                 title={`${orphanCount} node(s) have no relationships in the graph — typically vendors who have not issued an invoice yet`}
                             >
                                 <Crosshair size={12} /> {hideOrphans ? `Show ${orphanCount} unlinked` : `Hide ${orphanCount} unlinked`}
                             </button>
                         )}
-                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} title="Zoom in" onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 1.5, 300)}><ZoomIn size={14} /></button>
-                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} title="Zoom out" onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 0.7, 300)}><ZoomOut size={14} /></button>
-                        <button className="btn btn-secondary" style={{ padding: '4px 8px' }} title="Reset view" onClick={() => { graphRef.current?.zoomToFit(400, 60); setSelectedNode(null); setSearch(''); }}><RotateCcw size={14} /></button>
+                        <button className="btn btn-secondary" style={{ padding: '4px 8px', border: '1px solid var(--border-primary)' }} title="Zoom in" onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 1.5, 300)}><ZoomIn size={14} /></button>
+                        <button className="btn btn-secondary" style={{ padding: '4px 8px', border: '1px solid var(--border-primary)' }} title="Zoom out" onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 0.7, 300)}><ZoomOut size={14} /></button>
+                        <button className="btn btn-secondary" style={{ padding: '4px 8px', border: '1px solid var(--border-primary)' }} title="Reset view" onClick={() => { graphRef.current?.zoomToFit(400, 60); setSelectedNode(null); setSearch(''); }}><RotateCcw size={14} /></button>
                     </div>
                 </div>
 

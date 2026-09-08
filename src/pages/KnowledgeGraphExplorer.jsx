@@ -533,7 +533,7 @@ export default function KnowledgeGraphExplorer() {
         {/* Depth & Temporal Boundary Selectors */}
         <div className="toolbar-group flex-wrap">
           {/* Depth Selector */}
-          <div className="flex items-center gap-2" style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--border-primary)' }}>
+          <div className="flex items-center gap-2" style={{ background: 'var(--bg-card)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--border-primary)' }}>
             <Layers size={14} className="text-muted" />
             <span className="text-xs text-muted">Depth:</span>
             <button
