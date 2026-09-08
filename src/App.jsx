@@ -23,6 +23,7 @@ import { DataProvider, useData } from './context/DataContext';
 import Dashboard from './pages/Dashboard';
 import VendorRiskTable from './pages/VendorRiskTable';
 import VendorDetail from './pages/VendorDetail';
+import KnowledgeGraph from './pages/KnowledgeGraph';
 import KnowledgeGraphExplorer from './pages/KnowledgeGraphExplorer';
 import InvestigationWorkspace from './pages/InvestigationWorkspace';
 import ITCExposureAnalytics from './pages/ITCExposureAnalytics';
@@ -195,8 +196,9 @@ function AppContent() {
             <Route path="/itc-risk" element={<ITCExposureAnalytics />} />
 
             {/* Knowledge Graph Explorer */}
-            <Route path="/graph" element={<KnowledgeGraphExplorer />} />
-            <Route path="/knowledge-graph" element={<KnowledgeGraphExplorer />} />
+            <Route path="/graph" element={<KnowledgeGraph />} />
+            <Route path="/knowledge-graph" element={<KnowledgeGraph />} />
+            <Route path="/graph-explorer" element={<KnowledgeGraphExplorer />} />
 
             {/* Reconciliation */}
             <Route path="/reconciliation" element={<Reconciliation />} />

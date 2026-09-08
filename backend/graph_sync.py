@@ -112,7 +112,7 @@ class GraphSync:
             for stmt in CONSTRAINTS:
                 session.run(stmt)
 
-    def sync(self, vendors, invoices, wipe=True, taxpayer=None, returns=None):
+    def sync(self, vendors, invoices, wipe=True, taxpayer=None, returns=None, trade_edges=None):
         """Project the GST ecosystem into Neo4j. Returns a summary dict."""
         self.ensure_constraints()
 
@@ -131,6 +131,8 @@ class GraphSync:
                 session.execute_write(self._link_taxpayer, invoices=invoices)
             if returns:
                 session.execute_write(self._write_gstr3b, returns=returns)
+            if trade_edges:
+                session.execute_write(self._write_trade_edges, edges=trade_edges)
             matched = session.execute_write(self._mark_matched)
 
         return {
@@ -138,8 +140,23 @@ class GraphSync:
             "invoices": len(invoices),
             "taxpayer": 1 if taxpayer else 0,
             "gstr3bFilings": len(returns or []),
+            "tradeEdges": len(trade_edges or []),
             "matched": matched,
         }
+
+    @staticmethod
+    def _write_trade_edges(tx, edges):
+        tx.run(
+            """
+            UNWIND $edges AS e
+            MATCH (s:Vendor) WHERE s.id = e.source_vendor OR s.id = e.source
+            MATCH (t:Vendor) WHERE t.id = e.target_vendor OR t.id = e.target
+            MERGE (s)-[r:SUPPLIES_TO]->(t)
+            SET r.relation = coalesce(e.relation, 'SUPPLY_CHAIN'),
+                r.topology = coalesce(e.topology, 'normal_tier')
+            """,
+            edges=edges,
+        )
 
     @staticmethod
     def _write_taxpayer(tx, taxpayer):
@@ -223,6 +240,10 @@ class GraphSync:
                 vendor.state = v.state,
                 vendor.risk_score = v.riskScore,
                 vendor.status = v.status,
+                vendor.risk_band = v.riskBand,
+                vendor.itc_exposure = v.itcExposure,
+                vendor.priority = v.priority,
+                vendor.mismatch_rate = v.mismatchRate,
                 vendor.transaction_volume = v.totalTransactions,
                 vendor.missed_filings = v.missedFilings,
                 vendor.filing_delay_days = v.avgDaysLate
@@ -305,6 +326,7 @@ class GraphSync:
         "RECORDED_IN_PR": "purchase",
         "FILED_RETURN": "filed",
         "RECEIVES": "reported",
+        "SUPPLIES_TO": "supplies",
     }
 
     def fetch_graph(self):
@@ -350,10 +372,15 @@ class GraphSync:
                 node.update({
                     "label": name if len(name) <= 14 else name[:13] + "…",
                     "fullName": name,
+                    "vendorId": props.get("id"),
                     "gstin": props.get("gstin"),
                     "state": props.get("state"),
                     "risk": props.get("risk_score"),
                     "status": props.get("status"),
+                    "riskBand": props.get("risk_band"),
+                    "itcExposure": props.get("itc_exposure"),
+                    "priority": props.get("priority"),
+                    "mismatchRate": props.get("mismatch_rate"),
                     "centrality": props.get("pagerank"),
                 })
             elif group == "invoice":

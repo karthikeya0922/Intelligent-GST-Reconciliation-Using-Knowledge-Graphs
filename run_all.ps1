@@ -16,7 +16,7 @@ Start-Process -FilePath "python" -ArgumentList "main.py" -WorkingDirectory "$Pro
 
 # 3. Start Frontend Vite Server
 Write-Host "[3/3] Starting Frontend React UI (http://localhost:5173)..." -ForegroundColor Yellow
-Start-Process -FilePath "npm" -ArgumentList "run dev" -WorkingDirectory "$ProjectRoot" -WindowStyle Normal
+Start-Process -FilePath "npm.cmd" -ArgumentList "run dev" -WorkingDirectory "$ProjectRoot" -WindowStyle Normal
 
 Start-Sleep -Seconds 3
 Write-Host "====================================================" -ForegroundColor Green

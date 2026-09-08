@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ForceGraph2D from 'react-force-graph-2d';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
-import { Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Search, X, Database, AlertTriangle, Crosshair } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Search, X, Database, AlertTriangle, Crosshair, ExternalLink, Network } from 'lucide-react';
 
 const nodeColors = {
     taxpayer: '#f43f5e',
@@ -32,6 +33,7 @@ const edgeColors = {
     billed: 'rgba(244,63,94,0.35)',
     purchase: 'rgba(244,63,94,0.55)',
     filed: 'rgba(20,184,166,0.5)',
+    supplies: 'rgba(168,85,247,0.7)',
 };
 
 const DIM = 'rgba(100,116,139,0.12)';
@@ -45,6 +47,7 @@ const sizeFor = (group) =>
 const nodeId = (end) => (typeof end === 'object' ? end.id : end);
 
 export default function KnowledgeGraph() {
+    const navigate = useNavigate();
     const { graphData, graphSource, graphStatus, vendors, invoices } = useData();
     const [selectedNode, setSelectedNode] = useState(null);
     const [hoverNode, setHoverNode] = useState(null);
@@ -118,9 +121,12 @@ export default function KnowledgeGraph() {
             filteredGraph.nodes
                 .filter(n =>
                     (n.fullName || n.label || '').toLowerCase().includes(q) ||
+                    (n.vendorId || '').toLowerCase().includes(q) ||
                     (n.gstin || '').toLowerCase().includes(q) ||
                     (n.invoiceId || '').toLowerCase().includes(q) ||
-                    (n.matchStatus || '').toLowerCase().includes(q)
+                    (n.matchStatus || '').toLowerCase().includes(q) ||
+                    (n.riskBand || '').toLowerCase().includes(q) ||
+                    (n.state || '').toLowerCase().includes(q)
                 )
                 .map(n => n.id)
         );
@@ -253,7 +259,7 @@ export default function KnowledgeGraph() {
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
-            if (isVendor && node.risk > 0.6) {
+            if (isVendor && (node.risk > 0.6 || node.riskBand === 'HIGH')) {
                 ctx.strokeStyle = '#ef4444';
                 ctx.lineWidth = 2.5;
                 ctx.stroke();
@@ -276,7 +282,7 @@ export default function KnowledgeGraph() {
             ctx.font = `${isVendor ? '700 ' : '500 '}${fontSize}px Inter, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            const text = node.label || '';
+            const text = (isVendor && node.vendorId) ? `${node.vendorId} · ${node.label}` : (node.label || '');
             const y = node.y + size + 2;
 
             // Backing plate keeps text readable over edges.
@@ -351,6 +357,14 @@ export default function KnowledgeGraph() {
                             {fromNeo4j ? 'Live from Neo4j' : 'Client-side projection'}
                         </span>
                         <span className="badge info">{stats.nodes} nodes · {stats.edges} edges</span>
+                        <button
+                            className="btn btn-outline btn-sm"
+                            style={{ padding: '3px 10px', fontSize: '0.72rem', gap: '4px' }}
+                            onClick={() => navigate('/graph-explorer')}
+                            title="Open Temporal Counterparty Trading Topology view"
+                        >
+                            <Network size={12} /> Trading Topology View
+                        </button>
                     </div>
                 </div>
             </div>
@@ -534,6 +548,10 @@ export default function KnowledgeGraph() {
                         </span>
                     </div>
 
+                    {selectedNode.vendorId && <div className="node-detail-row">
+                        <span className="node-detail-label">Vendor ID</span>
+                        <span className="node-detail-value font-mono text-accent">{selectedNode.vendorId}</span>
+                    </div>}
                     {selectedNode.invoiceId && <div className="node-detail-row">
                         <span className="node-detail-label">Invoice</span>
                         <span className="node-detail-value font-mono">{selectedNode.invoiceId}</span>
@@ -547,12 +565,26 @@ export default function KnowledgeGraph() {
                         <span className="node-detail-value">{selectedNode.state}</span>
                     </div>}
                     {selectedNode.risk !== undefined && selectedNode.risk !== null && <div className="node-detail-row">
-                        <span className="node-detail-label">Risk Score</span>
+                        <span className="node-detail-label">Trained Risk Score</span>
                         <span className="node-detail-value">
-                            <span className={`badge ${selectedNode.risk > 0.6 ? 'high' : selectedNode.risk > 0.3 ? 'medium' : 'low'}`}>
-                                {(selectedNode.risk * 100).toFixed(0)}%
+                            <span className={`badge ${selectedNode.risk > 0.6 || selectedNode.riskBand === 'HIGH' ? 'high' : selectedNode.risk > 0.3 || selectedNode.riskBand === 'MEDIUM' ? 'medium' : 'low'}`}>
+                                {(selectedNode.risk * 100).toFixed(1)}% {selectedNode.riskBand ? `(${selectedNode.riskBand})` : ''}
                             </span>
                         </span>
+                    </div>}
+                    {selectedNode.itcExposure !== undefined && selectedNode.itcExposure !== null && selectedNode.itcExposure > 0 && <div className="node-detail-row">
+                        <span className="node-detail-label">ITC at Risk</span>
+                        <span className="node-detail-value amount" style={{ color: '#ef4444', fontWeight: 600 }}>
+                            ₹{Number(selectedNode.itcExposure).toLocaleString('en-IN')}
+                        </span>
+                    </div>}
+                    {selectedNode.priority && <div className="node-detail-row">
+                        <span className="node-detail-label">ML Priority</span>
+                        <span className="node-detail-value font-semibold">{selectedNode.priority}</span>
+                    </div>}
+                    {selectedNode.mismatchRate !== undefined && selectedNode.mismatchRate !== null && <div className="node-detail-row">
+                        <span className="node-detail-label">Mismatch Rate</span>
+                        <span className="node-detail-value">{Number(selectedNode.mismatchRate).toFixed(1)}%</span>
                     </div>}
                     {selectedNode.centrality !== undefined && selectedNode.centrality !== null && <div className="node-detail-row">
                         <span className="node-detail-label">Graph Centrality</span>
@@ -624,6 +656,18 @@ export default function KnowledgeGraph() {
                                     </span>
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {selectedNode.group === 'vendor' && (
+                        <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-primary)', paddingTop: '10px' }}>
+                            <button
+                                onClick={() => navigate(`/investigation/${selectedNode.vendorId || selectedNode.id.replace('v-', '')}`)}
+                                className="btn btn-primary btn-sm"
+                                style={{ width: '100%', justifyContent: 'center', fontSize: '0.75rem', gap: '6px' }}
+                            >
+                                <ExternalLink size={13} /> Open Investigation Workspace
+                            </button>
                         </div>
                     )}
                 </motion.div>
