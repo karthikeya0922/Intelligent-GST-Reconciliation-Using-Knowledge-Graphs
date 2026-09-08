@@ -4338,3 +4338,10 @@
 {"timestamp": "2026-09-08T04:07:25.170340", "vendor_id": "V0668", "prediction_period": "2025-12", "model_version": "3.0.0", "risk_class": "HIGH", "risk_score": 86.69, "itc_exposure": 43720.39}
 {"timestamp": "2026-09-08T04:07:25.217285", "vendor_id": "V0668", "prediction_period": "2026-01", "model_version": "3.0.0", "risk_class": "HIGH", "risk_score": 80.29, "itc_exposure": 26099.9}
 {"timestamp": "2026-09-08T04:07:25.251635", "vendor_id": "V0668", "prediction_period": "2026-02", "model_version": "3.0.0", "risk_class": "HIGH", "risk_score": 96.5, "itc_exposure": 75224.28}
+{"timestamp": "2026-09-08T04:57:38.758537", "vendor_id": "V0001", "prediction_period": "2026-03", "model_version": "3.0.0", "risk_class": "LOW", "risk_score": 4.5, "itc_exposure": 0.0}
+{"timestamp": "2026-09-08T04:57:38.798271", "vendor_id": "V0001", "prediction_period": "2026-03", "model_version": "3.0.0", "risk_class": "LOW", "risk_score": 4.5, "itc_exposure": 0.0}
+{"timestamp": "2026-09-08T05:33:23.974755", "vendor_id": "V0001", "prediction_period": "2026-03", "model_version": "3.0.0", "risk_class": "LOW", "risk_score": 4.5, "itc_exposure": 0.0}
+{"timestamp": "2026-09-08T05:33:24.022272", "vendor_id": "V0001", "prediction_period": "2026-03", "model_version": "3.0.0", "risk_class": "LOW", "risk_score": 4.5, "itc_exposure": 0.0}
+{"timestamp": "2026-09-08T05:59:51.735874", "vendor_id": "V0001", "prediction_period": "2026-03", "model_version": "3.0.0", "risk_class": "LOW", "risk_score": 4.5, "itc_exposure": 0.0}
+{"timestamp": "2026-09-08T05:59:52.061901", "vendor_id": "V0001", "prediction_period": "2026-03", "model_version": "3.0.0", "risk_class": "LOW", "risk_score": 4.5, "itc_exposure": 0.0}
+{"timestamp": "2026-09-08T06:00:08.661541", "vendor_id": "V0018", "prediction_period": "2026-03", "model_version": "3.0.0", "risk_class": "MEDIUM", "risk_score": 57.89, "itc_exposure": 0.0}

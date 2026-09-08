@@ -3,16 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import ForceGraph2D from 'react-force-graph-2d';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 import { Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Search, X, Database, AlertTriangle, Crosshair, ExternalLink, Network } from 'lucide-react';
 
-const nodeColors = {
-    taxpayer: '#f43f5e',
-    vendor: '#f59e0b',
-    invoice: '#3b82f6',
-    gstr: '#22c55e',
-    gstr3b: '#14b8a6',
-    einvoice: '#a855f7',
+// Titanium Terminal (Dark)
+// Intelligent GST Reconciliation Color System (Dark Theme from Spec)
+const darkNodeColors = {
+    taxpayer: '#ef4444',
+    vendor: '#94a3b8',
+    invoice: '#6366f1',
+    gstr: '#10b981',
+    gstr3b: '#10b981',
+    einvoice: '#8b5cf6',
     ewaybill: '#06b6d4',
+};
+
+// Intelligent GST Reconciliation Color System (Light Theme from Spec)
+const lightNodeColors = {
+    taxpayer: '#ef4444',
+    vendor: '#94a3b8',
+    invoice: '#4f46e5',
+    gstr: '#10b981',
+    gstr3b: '#10b981',
+    einvoice: '#7c3aed',
+    ewaybill: '#0284c7',
 };
 
 const nodeLabels = {
@@ -25,18 +39,29 @@ const nodeLabels = {
     ewaybill: 'e-Way Bill',
 };
 
-const edgeColors = {
-    issued: 'rgba(245,158,11,0.55)',
-    reported: 'rgba(34,197,94,0.5)',
-    einvoice: 'rgba(168,85,247,0.42)',
-    ewaybill: 'rgba(6,182,212,0.42)',
-    billed: 'rgba(244,63,94,0.35)',
-    purchase: 'rgba(244,63,94,0.55)',
-    filed: 'rgba(20,184,166,0.5)',
-    supplies: 'rgba(168,85,247,0.7)',
+// Intelligent GST Reconciliation Edges (Dark)
+const darkEdgeColors = {
+    issued: 'rgba(75, 85, 99, 0.75)',      // Normal Trade #4B5563
+    reported: 'rgba(16, 185, 129, 0.6)',   // Low risk / GSTR #10B981
+    einvoice: 'rgba(139, 92, 246, 0.5)',
+    ewaybill: 'rgba(6, 182, 212, 0.5)',
+    billed: 'rgba(75, 85, 99, 0.75)',
+    purchase: 'rgba(239, 68, 68, 0.75)',   // Flagged relationship #EF4444
+    filed: 'rgba(16, 185, 129, 0.6)',
+    supplies: 'rgba(99, 102, 241, 0.85)',  // Reciprocal Trade #6366F1
 };
 
-const DIM = 'rgba(100,116,139,0.12)';
+// Intelligent GST Reconciliation Edges (Light)
+const lightEdgeColors = {
+    issued: 'rgba(203, 213, 225, 0.85)',   // Normal Trade #CBD5E1
+    reported: 'rgba(16, 185, 129, 0.6)',
+    einvoice: 'rgba(124, 58, 237, 0.5)',
+    ewaybill: 'rgba(2, 132, 199, 0.5)',
+    billed: 'rgba(203, 213, 225, 0.85)',
+    purchase: 'rgba(239, 68, 68, 0.75)',   // Flagged relationship #EF4444
+    filed: 'rgba(16, 185, 129, 0.6)',
+    supplies: 'rgba(79, 70, 229, 0.85)',   // Reciprocal Trade #4F46E5
+};
 
 // Node radius by type. Vendors read as the anchors of the graph, so they win.
 const sizeFor = (group) =>
@@ -49,6 +74,13 @@ const nodeId = (end) => (typeof end === 'object' ? end.id : end);
 export default function KnowledgeGraph() {
     const navigate = useNavigate();
     const { graphData, graphSource, graphStatus, vendors, invoices } = useData();
+    const { theme } = useTheme();
+    const isLight = theme === 'light';
+
+    const nodeColors = useMemo(() => isLight ? lightNodeColors : darkNodeColors, [isLight]);
+    const edgeColors = useMemo(() => isLight ? lightEdgeColors : darkEdgeColors, [isLight]);
+    const DIM = useMemo(() => isLight ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.12)', [isLight]);
+
     const [selectedNode, setSelectedNode] = useState(null);
     const [hoverNode, setHoverNode] = useState(null);
     const [search, setSearch] = useState('');
@@ -210,7 +242,24 @@ export default function KnowledgeGraph() {
         const dimmed = highlightIds ? !highlightIds.has(node.id) : false;
         const isMatch = searchMatches?.has(node.id);
         const isFocus = focusNode?.id === node.id;
-        const color = dimmed ? DIM : (nodeColors[group] || '#fff');
+
+        // Categorize vendor colors according to user specification
+        let baseColor = nodeColors[group] || '#94a3b8';
+        if (isVendor) {
+            if (node.riskBand === 'HIGH' || node.status === 'flagged' || node.risk > 0.66) {
+                baseColor = '#ef4444'; // High Risk Node
+            } else if (node.riskBand === 'LOW' || (node.risk != null && node.risk <= 0.33)) {
+                baseColor = '#10b981'; // Low Risk Node
+            } else if (node.riskBand === 'MEDIUM') {
+                baseColor = '#f59e0b'; // Medium Risk Node
+            } else {
+                baseColor = '#94a3b8'; // Normal Node
+            }
+        }
+        if (isFocus) {
+            baseColor = isLight ? '#4f46e5' : '#6366f1'; // Selected Node
+        }
+        const color = dimmed ? DIM : baseColor;
 
         ctx.globalAlpha = dimmed ? 0.35 : 1;
 
@@ -218,13 +267,13 @@ export default function KnowledgeGraph() {
         if (isMatch) {
             ctx.beginPath();
             ctx.arc(node.x, node.y, size + 5, 0, 2 * Math.PI);
-            ctx.strokeStyle = '#facc15';
+            ctx.strokeStyle = isLight ? '#4f46e5' : '#6366f1';
             ctx.lineWidth = 1.6;
             ctx.stroke();
         }
 
         if (!dimmed && (isVendor || isFocus || (isInvoice && node.status === 'flagged'))) {
-            ctx.shadowColor = isInvoice && node.status === 'flagged' ? '#ef4444' : nodeColors[group];
+            ctx.shadowColor = isInvoice && node.status === 'flagged' ? '#ef4444' : isFocus ? (isLight ? '#4f46e5' : '#6366f1') : baseColor;
             ctx.shadowBlur = isFocus ? 20 : isVendor ? 14 : 10;
         }
 
@@ -254,19 +303,14 @@ export default function KnowledgeGraph() {
         ctx.shadowBlur = 0;
 
         if (!dimmed) {
-            if (node.status === 'flagged') {
+            if (node.status === 'flagged' || node.riskBand === 'HIGH' || node.risk > 0.66) {
                 ctx.strokeStyle = '#ef4444';
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
-            if (isVendor && (node.risk > 0.6 || node.riskBand === 'HIGH')) {
-                ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-            }
             if (isFocus) {
-                ctx.strokeStyle = '#f8fafc';
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = isLight ? '#4f46e5' : '#6366f1';
+                ctx.lineWidth = 2;
                 ctx.stroke();
             }
         }
@@ -288,20 +332,24 @@ export default function KnowledgeGraph() {
             // Backing plate keeps text readable over edges.
             if (isFocus || isMatch || globalScale > 2.2) {
                 const w = ctx.measureText(text).width;
-                ctx.fillStyle = 'rgba(15,23,42,0.78)';
+                ctx.fillStyle = isLight ? 'rgba(255,255,255,0.92)' : 'rgba(17,24,39,0.88)';
                 ctx.fillRect(node.x - w / 2 - 1.5, y - 0.5, w + 3, fontSize + 1.5);
             }
-            ctx.fillStyle = isMatch ? '#facc15' : isVendor ? '#f1f5f9' : '#cbd5e1';
+            ctx.fillStyle = isMatch
+                ? (isLight ? '#4f46e5' : '#6366f1')
+                : isVendor
+                ? (isLight ? '#0f172a' : '#e5e7eb')
+                : (isLight ? '#64748b' : '#94a3b8');
             ctx.fillText(text, node.x, y);
         }
 
         ctx.globalAlpha = 1;
-    }, [highlightIds, searchMatches, focusNode]);
+    }, [highlightIds, searchMatches, focusNode, isLight, nodeColors, DIM]);
 
     const paintLink = useCallback((link, ctx) => {
         const s = nodeId(link.source), t = nodeId(link.target);
         const dimmed = highlightIds ? !(highlightIds.has(s) && highlightIds.has(t)) : false;
-        const color = dimmed ? DIM : (edgeColors[link.type] || 'rgba(255,255,255,0.15)');
+        const color = dimmed ? DIM : (edgeColors[link.type] || (isLight ? 'rgba(15,23,42,0.2)' : 'rgba(255,255,255,0.15)'));
 
         ctx.globalAlpha = dimmed ? 0.25 : 1;
         ctx.strokeStyle = color;
@@ -328,7 +376,7 @@ export default function KnowledgeGraph() {
             ctx.fill();
         }
         ctx.globalAlpha = 1;
-    }, [highlightIds]);
+    }, [highlightIds, isLight, edgeColors, DIM]);
 
     // Neighbours of the selected node, for the detail panel.
     const neighbours = useMemo(() => {
@@ -465,7 +513,7 @@ export default function KnowledgeGraph() {
                     graphData={filteredGraph}
                     width={dimensions.width}
                     height={dimensions.height}
-                    backgroundColor="#0f172a"
+                    backgroundColor={isLight ? '#f8fafc' : '#0b1220'}
                     nodeCanvasObject={paintNode}
                     nodePointerAreaPaint={(node, color, ctx) => {
                         // Generous hit area so small document nodes stay clickable.
@@ -482,7 +530,7 @@ export default function KnowledgeGraph() {
                     linkDirectionalParticles={focusNode ? 0 : 1}
                     linkDirectionalParticleSpeed={0.004}
                     linkDirectionalParticleWidth={1.5}
-                    linkDirectionalParticleColor={(link) => edgeColors[link.type] || '#fff'}
+                    linkDirectionalParticleColor={(link) => edgeColors[link.type] || (isLight ? '#4f46e5' : '#6366f1')}
                     d3AlphaDecay={0.022}
                     d3VelocityDecay={0.32}
                     cooldownTicks={320}
