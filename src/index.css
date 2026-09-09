@@ -2007,12 +2007,14 @@ button.active-tag {
 }
 
 .login-left {
-  flex: 1.1;
-  background: linear-gradient(145deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%);
+  flex: 1.2;
+  background: 
+    linear-gradient(160deg, rgba(8, 12, 24, 0.78) 0%, rgba(15, 23, 42, 0.85) 50%, rgba(10, 15, 30, 0.92) 100%),
+    url('/login-hero-bg.png') no-repeat center center / cover;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px 48px;
+  padding: 50px 40px;
   position: relative;
   overflow: hidden;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -2025,9 +2027,9 @@ button.active-tag {
   right: -10%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15), transparent 70%);
   pointer-events: none;
-  filter: blur(40px);
+  filter: blur(50px);
 }
 
 .login-left::after {
@@ -2037,16 +2039,23 @@ button.active-tag {
   left: -10%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.15), transparent 70%);
   pointer-events: none;
-  filter: blur(40px);
+  filter: blur(50px);
 }
 
 .login-brand {
   position: relative;
-  z-index: 1;
-  max-width: 460px;
+  z-index: 2;
+  max-width: 470px;
   width: 100%;
+  background: rgba(9, 14, 28, 0.65);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 34px 30px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 30px rgba(56, 189, 248, 0.08);
 }
 
 .login-badge-tag {
