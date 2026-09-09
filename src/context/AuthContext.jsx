@@ -86,10 +86,10 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const signup = async (name, email, password) => {
+    const signup = async (name, email, password, role = 'auditor', organization = 'GST Audit Division') => {
         const normalized = (email || '').trim().toLowerCase();
         try {
-            const data = await postJSON('/signup', { name, email: normalized, password });
+            const data = await postJSON('/signup', { name, email: normalized, password, role, organization });
             setAuthOnline(true);
             if (!data.success) return { success: false, error: data.error };
             persist(data.user);
@@ -101,12 +101,12 @@ export function AuthProvider({ children }) {
                 return { success: false, error: 'Email already registered' };
             }
             const newUser = {
-                id: db.length + 1, email: normalized, password, name, role: 'user',
+                id: db.length + 1, email: normalized, password, name, role, organization,
                 createdAt: new Date().toISOString().split('T')[0],
             };
             db.push(newUser);
             saveLocalDB(db);
-            persist({ id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role });
+            persist({ id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role, organization: newUser.organization });
             return { success: true, offline: true };
         }
     };

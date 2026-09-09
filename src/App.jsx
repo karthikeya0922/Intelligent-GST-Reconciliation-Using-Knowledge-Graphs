@@ -227,7 +227,9 @@ function AppContent() {
   if (!user) {
     return (
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage initialMode="login" />} />
+        <Route path="/register" element={<LoginPage initialMode="signup" />} />
+        <Route path="/signup" element={<LoginPage initialMode="signup" />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -272,8 +274,10 @@ function AppContent() {
             <Route path="/data-entry" element={<DataEntry />} />
             <Route path="/settings" element={<Settings />} />
 
-            {/* Fallback */}
+            {/* Fallback & Auth redirects */}
             <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/register" element={<Navigate to="/" replace />} />
+            <Route path="/signup" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

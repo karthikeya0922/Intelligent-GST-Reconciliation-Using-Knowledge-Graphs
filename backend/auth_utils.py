@@ -66,7 +66,8 @@ def public_user(doc: dict) -> dict:
         "id": str(doc.get("_id", "")),
         "email": doc.get("email"),
         "name": doc.get("name"),
-        "role": doc.get("role", "user"),
+        "role": doc.get("role", "auditor"),
+        "organization": doc.get("organization", "GST Audit Division"),
         "createdAt": doc.get("createdAt"),
     }
 

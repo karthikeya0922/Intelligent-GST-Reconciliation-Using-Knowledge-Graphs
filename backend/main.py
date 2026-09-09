@@ -517,11 +517,15 @@ def signup(data: dict = Body(...)):
     if users_col.find_one({"email": email}):
         return {"success": False, "error": "Email already registered"}
 
+    role = (data.get("role") or "auditor").strip()
+    organization = (data.get("organization") or "Enterprise GST Audit").strip()
+
     doc = {
         "email": email,
         "password": auth_utils.hash_password(password),
         "name": name.strip(),
-        "role": "user",
+        "role": role,
+        "organization": organization,
         "createdAt": datetime.now().strftime("%Y-%m-%d"),
     }
     result = users_col.insert_one(doc)
