@@ -961,7 +961,13 @@ def api_risk_predict(payload: RiskPredictRequest = Body(...)):
             },
             "risk_class": "LOW",
             "risk_probability": {"LOW": 0.85, "MEDIUM": 0.10, "HIGH": 0.05},
-            "top_factors": [{"feature": "invoice_count", "impact": "low"}]
+            "top_factors": [{"feature": "invoice_count", "impact": "low"}],
+            "explanation": {
+                "top_contributing_factors": [
+                    {"feature": "invoice_count", "shap_value": 0.05, "impact": "low", "direction": "increases_risk", "description": "Transaction frequency (invoice_count)"}
+                ],
+                "protective_factors": []
+            }
         }
 
 

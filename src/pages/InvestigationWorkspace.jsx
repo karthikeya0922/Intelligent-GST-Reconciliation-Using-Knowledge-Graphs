@@ -117,8 +117,20 @@ export default function InvestigationWorkspace() {
   const risk = assessment?.risk || {};
   const itc = assessment?.itc || {};
   const evidence = assessment?.evidence || {};
-  const rec = assessment?.recommendations || {};
-  const shapFactors = assessment?.explanation?.top_contributing_factors || [];
+  const rawShap = assessment?.explanation?.top_contributing_factors;
+  const shapFactors = (rawShap && rawShap.length > 0)
+    ? rawShap
+    : (assessment?.evidence?.model || assessment?.top_factors || []).map(m => {
+        const match = m.description?.match(/impact\s+([+-]?\d+\.?\d*)/);
+        const val = match ? parseFloat(match[1]) : (typeof m.shap_value === 'number' ? m.shap_value : (typeof m.value === 'number' ? m.value : 0.05));
+        return {
+          feature: m.feature,
+          description: m.description,
+          shap_value: val,
+          impact: m.severity?.toLowerCase() || m.impact || 'medium'
+        };
+      });
+  const protectiveFactors = assessment?.explanation?.protective_factors || [];
 
   return (
     <div className="investigation-workspace-page">
@@ -325,19 +337,52 @@ export default function InvestigationWorkspace() {
                 <p className="text-xs text-muted mb-3">
                   Exact additive Shapley contributions showing which specific compliance attributes drove the model score.
                 </p>
-                <div className="flex flex-col gap-2">
-                  {shapFactors.map((f, idx) => (
-                    <div key={idx} className="p-3 border rounded flex justify-between items-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                      <div>
-                        <div className="font-semibold text-sm">{f.feature}</div>
-                        <div className="text-xs text-muted">{f.description}</div>
-                      </div>
-                      <div className="text-right">
-                        <span className="badge-high">+{f.shap_value?.toFixed(3)}</span>
-                      </div>
+
+                {shapFactors.length === 0 && protectiveFactors.length === 0 ? (
+                  <div className="p-4 text-center border rounded" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <p className="text-sm font-medium text-muted">No material upward risk factors detected.</p>
+                    <p className="text-xs text-muted mt-1">This vendor exhibits compliant return filing and standard commercial patterns.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-2">
+                      {shapFactors.map((f, idx) => (
+                        <div key={idx} className="p-3 border rounded flex justify-between items-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                          <div>
+                            <div className="font-semibold text-sm">{f.feature?.replace(/_/g, ' ')}</div>
+                            <div className="text-xs text-muted">{f.description}</div>
+                          </div>
+                          <div className="text-right">
+                            <span className={f.shap_value >= 0 ? "badge-high" : "badge-low"}>
+                              {typeof f.shap_value === 'number' ? (f.shap_value >= 0 ? `+${f.shap_value.toFixed(3)}` : f.shap_value.toFixed(3)) : '+0.050'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+
+                    {protectiveFactors.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-xs uppercase text-muted mb-2 font-semibold">🛡️ Mitigating / Protective Factors</h4>
+                        <div className="flex flex-col gap-2">
+                          {protectiveFactors.map((f, idx) => (
+                            <div key={idx} className="p-3 border rounded flex justify-between items-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                              <div>
+                                <div className="font-semibold text-sm">{f.feature?.replace(/_/g, ' ')}</div>
+                                <div className="text-xs text-muted">{f.description}</div>
+                              </div>
+                              <div className="text-right">
+                                <span className="badge-low">
+                                  {typeof f.shap_value === 'number' ? f.shap_value.toFixed(3) : '-0.050'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

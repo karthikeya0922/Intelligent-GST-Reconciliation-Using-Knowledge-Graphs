@@ -291,6 +291,35 @@ class ITCRiskEngine:
         )
 
         # 10. Assemble Production Response
+        top_contributing = []
+        protective = []
+        for tf in top_shap_factors:
+            feat = tf.get("feature", "")
+            friendly_name = self.explanation_generator.FEATURE_FRIENDLY_NAMES.get(feat, feat.replace("_", " "))
+            val = tf.get("value")
+            shap_val = tf.get("shap_value", 0.0)
+            direction = tf.get("direction", "increases_risk")
+            desc = f"{friendly_name.capitalize()} (val={val}): {direction.replace('_', ' ')} with attribution impact +{abs(shap_val):.4f}"
+
+            item = {
+                "feature": feat,
+                "shap_value": shap_val,
+                "impact": tf.get("impact", "medium"),
+                "direction": direction,
+                "value": val,
+                "description": desc
+            }
+            if shap_val >= 0:
+                top_contributing.append(item)
+            else:
+                protective.append(item)
+
+        explanation = {
+            "top_contributing_factors": top_contributing,
+            "protective_factors": protective,
+            "narrative": explanation_text
+        }
+
         assessment = {
             "vendor_id": vendor_id,
             "prediction_period": period,
@@ -317,7 +346,8 @@ class ITCRiskEngine:
                 "name": self.metadata.get("model_name", "Tabular XGBoost (Frozen)"),
                 "version": self.metadata.get("model_version", "3.0.0")
             },
-            "explanation_text": explanation_text
+            "explanation_text": explanation_text,
+            "explanation": explanation
         }
 
         # 11. Audit Logging
