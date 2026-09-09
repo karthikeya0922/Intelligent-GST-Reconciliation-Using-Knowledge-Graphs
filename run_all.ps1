@@ -5,10 +5,14 @@ Write-Host "====================================================" -ForegroundCol
 Write-Host "⚡ Starting GST ReconcileAI Full Stack Environment" -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
 
-# 1. Start Neo4j Database
-Write-Host "[1/3] Starting Neo4j Knowledge Graph Server..." -ForegroundColor Yellow
-$env:JAVA_HOME = "C:\neo4j\jdk-21.0.5+11"
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c set JAVA_HOME=C:\neo4j\jdk-21.0.5+11&& C:\neo4j\neo4j-community-5.26.0\bin\neo4j.bat console" -WindowStyle Minimized
+# 1. Start Neo4j Database (Optional)
+if (Test-Path "C:\neo4j\neo4j-community-5.26.0\bin\neo4j.bat") {
+    Write-Host "[1/3] Starting Neo4j Knowledge Graph Server..." -ForegroundColor Yellow
+    $env:JAVA_HOME = "C:\neo4j\jdk-21.0.5+11"
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c set JAVA_HOME=C:\neo4j\jdk-21.0.5+11&& C:\neo4j\neo4j-community-5.26.0\bin\neo4j.bat console" -WindowStyle Minimized
+} else {
+    Write-Host "[1/3] Standalone Neo4j not found at C:\neo4j (optional). Use 'docker compose up -d' if graph DB is needed." -ForegroundColor Cyan
+}
 
 # 2. Start FastAPI Backend
 Write-Host "[2/3] Starting FastAPI Backend API (http://localhost:8000)..." -ForegroundColor Yellow

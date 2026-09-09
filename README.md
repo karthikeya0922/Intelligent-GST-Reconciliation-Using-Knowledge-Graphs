@@ -30,6 +30,72 @@ The system is designed as a **risk-indicator and decision-support platform**, no
 
 ---
 
+## ⚡ Quickstart: Running the Project After Cloning
+
+Anyone cloning this repository can run the entire platform with **100% full feature parity** (all ML models, SHAP explanations, 8-step investigation workspace, reconciliation engine, and dashboard) in minutes.
+
+### 📋 Prerequisites
+* **Python 3.10+**
+* **Node.js 18+** & `npm`
+* **Docker** (Recommended for instant MongoDB + Neo4j services)
+
+---
+
+### Step 1: Clone Repository
+```bash
+git clone https://github.com/karthikeya0922/Intelligent-GST-Reconciliation-Using-Knowledge-Graphs.git
+cd Intelligent-GST-Reconciliation-Using-Knowledge-Graphs
+```
+
+### Step 2: Start Databases (One Command)
+Start MongoDB and Neo4j using Docker Compose:
+```bash
+docker compose up -d
+```
+> **Note:** The backend degrades gracefully if Docker is not installed — the frontend automatically falls back to bundled research sample datasets.
+
+### Step 3: Start the Backend API
+In your terminal:
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+```
+Backend API will start at **http://localhost:8000** (Swagger docs at `/docs`).
+
+### Step 4: Start the Frontend UI
+In a new terminal window:
+```bash
+npm install
+npm run dev
+```
+Open your browser at **http://localhost:5173**.
+
+---
+
+### 🚀 One-Click Windows Launch (Optional)
+If running on Windows:
+```powershell
+# Double-click or run from PowerShell:
+.\start_app.bat
+# Or:
+.\run_all.ps1
+```
+
+---
+
+### 🧪 Verifying the Installation
+Run the test suite to verify ML models, risk engine, and reconciliation pipeline:
+```bash
+pytest tests/risk_engine/ -v
+```
+To verify the frontend build:
+```bash
+npm run build
+```
+
+---
+
 # 🎯 Research Question
 
 The primary research question is:
