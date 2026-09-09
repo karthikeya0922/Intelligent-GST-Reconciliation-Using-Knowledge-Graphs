@@ -132,6 +132,7 @@ export default function InvestigationWorkspace() {
   const itc = assessment?.itc || {};
   const evidence = assessment?.evidence || {};
   const evidenceSummary = assessment?.evidence_summary || {};
+  const rec = assessment?.recommendations || {};
   const rawShap = assessment?.explanation?.top_contributing_factors;
   const shapFactors = (rawShap && rawShap.length > 0)
     ? rawShap
@@ -570,10 +571,10 @@ export default function InvestigationWorkspace() {
                 </div>
                 <div className="p-4 border rounded mb-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
                   <h4 className="text-sm font-bold text-accent mb-2">
-                    Recommended Action: {rec.recommended_action}
+                    Recommended Action: {rec.recommended_action || rec.action || 'Routine monitoring'}
                   </h4>
                   <p className="text-xs text-muted leading-relaxed mb-3">
-                    {rec.review_details}
+                    {rec.review_details || rec.details || 'No immediate audit intervention required. Automated reconciliation approved.'}
                   </p>
                   <div className="flex gap-2">
                     <button className="btn-primary btn-sm flex items-center gap-1" onClick={handleExportAudit}>
