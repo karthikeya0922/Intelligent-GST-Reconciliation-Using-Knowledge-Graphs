@@ -643,22 +643,27 @@ The test coverage includes:
 Install dependencies:
 
 ```bash
+# From root directory:
 pip install -r requirements.txt
+# Or from backend directory:
+pip install -r backend/requirements.txt
 ```
 
 Start FastAPI:
 
 ```bash
-uvicorn backend.main:app --reload
+cd backend
+python main.py
 ```
+*(Or via uvicorn: `uvicorn backend.main:app --reload`)*
 
-Backend:
+Backend API:
 
 ```text
 http://localhost:8000
 ```
 
-API documentation:
+Interactive API documentation:
 
 ```text
 http://localhost:8000/docs

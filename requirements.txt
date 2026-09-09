@@ -1,0 +1,2 @@
+# Convenience pointer to backend requirements
+-r backend/requirements.txt
