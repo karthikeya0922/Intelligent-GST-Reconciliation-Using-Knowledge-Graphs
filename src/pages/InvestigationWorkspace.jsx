@@ -41,6 +41,20 @@ function formatINR(val) {
   return `₹${num.toLocaleString('en-IN')}`;
 }
 
+function getEvidenceValue(evidenceSource, summarySource, featureName, defaultValue = 0) {
+  if (summarySource && summarySource[featureName] !== undefined) {
+    return summarySource[featureName];
+  }
+  if (Array.isArray(evidenceSource)) {
+    const item = evidenceSource.find(e => e.feature === featureName);
+    return item && item.value !== undefined ? item.value : defaultValue;
+  }
+  if (evidenceSource && typeof evidenceSource === 'object' && evidenceSource[featureName] !== undefined) {
+    return evidenceSource[featureName];
+  }
+  return defaultValue;
+}
+
 export default function InvestigationWorkspace() {
   const { vendor_id } = useParams();
   const navigate = useNavigate();
@@ -117,6 +131,7 @@ export default function InvestigationWorkspace() {
   const risk = assessment?.risk || {};
   const itc = assessment?.itc || {};
   const evidence = assessment?.evidence || {};
+  const evidenceSummary = assessment?.evidence_summary || {};
   const rawShap = assessment?.explanation?.top_contributing_factors;
   const shapFactors = (rawShap && rawShap.length > 0)
     ? rawShap
@@ -387,74 +402,119 @@ export default function InvestigationWorkspace() {
             )}
 
             {/* STEP 5: Review Reconciliation */}
-            {currentStep === 5 && (
-              <div>
-                <div className="card-header flex items-center justify-between border-bottom pb-2 mb-3">
-                  <h3>Step 5 — Invoice Reconciliation Signals</h3>
-                  <span className="badge warning">Reconciliation Audit</span>
-                </div>
-                <div className="grid grid-2 gap-3 text-xs">
-                  <div className="p-3 border rounded">
-                    <div className="flex justify-between py-1 border-bottom">
-                      <span className="text-muted">Taxable Value Mismatch Rate:</span>
-                      <strong>{((evidence.reconciliation?.mismatch_rate || 0) * 100).toFixed(1)}%</strong>
+            {currentStep === 5 && (() => {
+              const mismatchRate = getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'mismatch_rate', 0);
+              const mismatchCount = getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'mismatch_count', 0);
+              const duplicateCount = getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'duplicate_invoice_count', getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'duplicate_count', 0));
+              const missingEinvoice = getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'missing_einvoice_count', 0);
+              const missingEway = getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'missing_eway_bill_count', 0);
+              const reconItems = Array.isArray(evidence.reconciliation) ? evidence.reconciliation : [];
+
+              return (
+                <div>
+                  <div className="card-header flex items-center justify-between border-bottom pb-2 mb-3">
+                    <h3>Step 5 — Invoice Reconciliation Signals</h3>
+                    <span className="badge warning">Reconciliation Audit</span>
+                  </div>
+                  <div className="grid grid-2 gap-3 text-xs mb-3">
+                    <div className="p-3 border rounded">
+                      <div className="flex justify-between py-1 border-bottom">
+                        <span className="text-muted">Taxable Value Mismatch Rate:</span>
+                        <strong className={mismatchRate > 0.05 ? "text-danger" : ""}>{(mismatchRate * 100).toFixed(1)}%</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-bottom">
+                        <span className="text-muted">Total Discrepant Invoices:</span>
+                        <strong className={mismatchCount > 0 ? "text-danger" : ""}>{mismatchCount}</strong>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-muted">Duplicate Invoices:</span>
+                        <strong>{duplicateCount}</strong>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-1 border-bottom">
-                      <span className="text-muted">Total Discrepant Invoices:</span>
-                      <strong>{evidence.reconciliation?.mismatch_count || 0}</strong>
-                    </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-muted">Duplicate Invoices:</span>
-                      <strong>{evidence.reconciliation?.duplicate_count || 0}</strong>
+
+                    <div className="p-3 border rounded">
+                      <div className="flex justify-between py-1 border-bottom">
+                        <span className="text-muted">Missing e-Invoice IRN:</span>
+                        <strong className={missingEinvoice > 0 ? "text-warning" : ""}>{missingEinvoice}</strong>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-muted">Missing e-Way Bill Coverage:</span>
+                        <strong className={missingEway > 0 ? "text-warning" : ""}>{missingEway}</strong>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-3 border rounded">
-                    <div className="flex justify-between py-1 border-bottom">
-                      <span className="text-muted">Missing e-Invoice IRN:</span>
-                      <strong>{evidence.reconciliation?.missing_einvoice_count || 0}</strong>
+                  {reconItems.length > 0 && (
+                    <div className="mt-3">
+                      <h4 className="text-xs uppercase text-muted mb-2 font-semibold">📑 Auditable Reconciliation Discrepancies</h4>
+                      <div className="flex flex-col gap-2">
+                        {reconItems.map((item, idx) => (
+                          <div key={idx} className="p-2 border rounded text-xs flex justify-between items-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                            <span>{item.description}</span>
+                            <span className={item.severity === 'HIGH' ? 'badge-high' : 'badge-warning'}>{item.severity}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-muted">Missing e-Way Bill Coverage:</span>
-                      <strong>{evidence.reconciliation?.missing_eway_bill_count || 0}</strong>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* STEP 6: Review Compliance */}
-            {currentStep === 6 && (
-              <div>
-                <div className="card-header flex items-center justify-between border-bottom pb-2 mb-3">
-                  <h3>Step 6 — Statutory Compliance & Return Filings</h3>
-                  <span className="badge info">Statutory History</span>
-                </div>
-                <div className="grid grid-2 gap-3 text-xs">
-                  <div className="p-3 border rounded">
-                    <div className="flex justify-between py-1 border-bottom">
-                      <span className="text-muted">Average GSTR-1 Filing Delay:</span>
-                      <strong>{evidence.compliance?.average_filing_delay ? `${evidence.compliance.average_filing_delay} days` : '0 days (on time)'}</strong>
+            {currentStep === 6 && (() => {
+              const avgDelay = getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'average_filing_delay', 0);
+              const lateCount = getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'late_filing_count', 0);
+              const missingGstr1 = getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'missing_gstr1_count', 0);
+              const missingGstr3b = getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'missing_gstr3b_count', 0);
+              const compItems = Array.isArray(evidence.compliance) ? evidence.compliance : [];
+
+              return (
+                <div>
+                  <div className="card-header flex items-center justify-between border-bottom pb-2 mb-3">
+                    <h3>Step 6 — Statutory Compliance & Return Filings</h3>
+                    <span className="badge info">Statutory History</span>
+                  </div>
+                  <div className="grid grid-2 gap-3 text-xs mb-3">
+                    <div className="p-3 border rounded">
+                      <div className="flex justify-between py-1 border-bottom">
+                        <span className="text-muted">Average GSTR-1 Filing Delay:</span>
+                        <strong className={avgDelay > 0 ? "text-warning" : ""}>{avgDelay > 0 ? `${avgDelay} days` : '0 days (on time)'}</strong>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-muted">Late Filing Frequency:</span>
+                        <strong className={lateCount > 0 ? "text-warning" : ""}>{lateCount} period(s)</strong>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-muted">Late Filing Frequency:</span>
-                      <strong>{evidence.compliance?.late_filing_count || 0} period(s)</strong>
+
+                    <div className="p-3 border rounded">
+                      <div className="flex justify-between py-1 border-bottom">
+                        <span className="text-muted">Omitted GSTR-1 Returns:</span>
+                        <strong className={missingGstr1 > 0 ? "text-danger" : ""}>{missingGstr1}</strong>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-muted">Defaulted GSTR-3B Tax Remittances:</span>
+                        <strong className={missingGstr3b > 0 ? "text-danger" : ""}>{missingGstr3b}</strong>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-3 border rounded">
-                    <div className="flex justify-between py-1 border-bottom">
-                      <span className="text-muted">Omitted GSTR-1 Returns:</span>
-                      <strong>{evidence.compliance?.missing_gstr1_count || 0}</strong>
+                  {compItems.length > 0 && (
+                    <div className="mt-3">
+                      <h4 className="text-xs uppercase text-muted mb-2 font-semibold">📑 Statutory Return Audit Findings</h4>
+                      <div className="flex flex-col gap-2">
+                        {compItems.map((item, idx) => (
+                          <div key={idx} className="p-2 border rounded text-xs flex justify-between items-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                            <span>{item.description}</span>
+                            <span className={item.severity === 'HIGH' ? 'badge-high' : 'badge-warning'}>{item.severity}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-muted">Defaulted GSTR-3B Tax Remittances:</span>
-                      <strong>{evidence.compliance?.missing_gstr3b_count || 0}</strong>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* STEP 7: Inspect Knowledge Graph */}
             {currentStep === 7 && (

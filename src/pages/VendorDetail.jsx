@@ -44,6 +44,20 @@ function formatINR(val) {
   return `₹${num.toLocaleString('en-IN')}`;
 }
 
+function getEvidenceValue(evidenceSource, summarySource, featureName, defaultValue = 0) {
+  if (summarySource && summarySource[featureName] !== undefined) {
+    return summarySource[featureName];
+  }
+  if (Array.isArray(evidenceSource)) {
+    const item = evidenceSource.find(e => e.feature === featureName);
+    return item && item.value !== undefined ? item.value : defaultValue;
+  }
+  if (evidenceSource && typeof evidenceSource === 'object' && evidenceSource[featureName] !== undefined) {
+    return evidenceSource[featureName];
+  }
+  return defaultValue;
+}
+
 export default function VendorDetail() {
   const { vendor_id } = useParams();
   const navigate = useNavigate();
@@ -124,6 +138,7 @@ export default function VendorDetail() {
   const risk = assessment.risk || {};
   const itc = assessment.itc || {};
   const evidence = assessment.evidence || {};
+  const evidenceSummary = assessment.evidence_summary || {};
   const rec = assessment.recommendations || {};
   const shapFactors = assessment.explanation?.top_contributing_factors || [];
   const protectiveFactors = assessment.explanation?.protective_factors || [];
@@ -292,19 +307,19 @@ export default function VendorDetail() {
             <div className="flex flex-col gap-1 text-xs">
               <div className="flex justify-between py-1 border-bottom">
                 <span className="text-muted">Mismatch Rate:</span>
-                <strong>{evidence.reconciliation?.mismatch_rate ? `${(evidence.reconciliation.mismatch_rate * 100).toFixed(1)}%` : '0.0%'}</strong>
+                <strong>{`${(getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'mismatch_rate', 0) * 100).toFixed(1)}%`}</strong>
               </div>
               <div className="flex justify-between py-1 border-bottom">
                 <span className="text-muted">Mismatched Invoices:</span>
-                <strong>{evidence.reconciliation?.mismatch_count || 0}</strong>
+                <strong>{getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'mismatch_count', 0)}</strong>
               </div>
               <div className="flex justify-between py-1 border-bottom">
                 <span className="text-muted">Duplicate Invoices:</span>
-                <strong>{evidence.reconciliation?.duplicate_count || 0}</strong>
+                <strong>{getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'duplicate_invoice_count', getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'duplicate_count', 0))}</strong>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted">Missing e-Invoices:</span>
-                <strong>{evidence.reconciliation?.missing_einvoice_count || 0}</strong>
+                <strong>{getEvidenceValue(evidence.reconciliation, evidenceSummary.reconciliation, 'missing_einvoice_count', 0)}</strong>
               </div>
             </div>
           </div>
@@ -317,19 +332,19 @@ export default function VendorDetail() {
             <div className="flex flex-col gap-1 text-xs">
               <div className="flex justify-between py-1 border-bottom">
                 <span className="text-muted">Average Filing Delay:</span>
-                <strong>{evidence.compliance?.average_filing_delay ? `${evidence.compliance.average_filing_delay} days` : 'On time'}</strong>
+                <strong>{getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'average_filing_delay', 0) > 0 ? `${getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'average_filing_delay', 0)} days` : 'On time'}</strong>
               </div>
               <div className="flex justify-between py-1 border-bottom">
                 <span className="text-muted">Late Filings Count:</span>
-                <strong>{evidence.compliance?.late_filing_count || 0}</strong>
+                <strong>{getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'late_filing_count', 0)}</strong>
               </div>
               <div className="flex justify-between py-1 border-bottom">
                 <span className="text-muted">Missing GSTR-1:</span>
-                <strong>{evidence.compliance?.missing_gstr1_count || 0}</strong>
+                <strong>{getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'missing_gstr1_count', 0)}</strong>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted">Missing GSTR-3B:</span>
-                <strong>{evidence.compliance?.missing_gstr3b_count || 0}</strong>
+                <strong>{getEvidenceValue(evidence.compliance, evidenceSummary.compliance, 'missing_gstr3b_count', 0)}</strong>
               </div>
             </div>
           </div>

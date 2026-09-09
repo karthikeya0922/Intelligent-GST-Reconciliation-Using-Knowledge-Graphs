@@ -320,6 +320,22 @@ class ITCRiskEngine:
             "narrative": explanation_text
         }
 
+        evidence_summary = {
+            "reconciliation": {
+                "mismatch_rate": float(rec.get("mismatch_rate", 0.0)),
+                "mismatch_count": int(rec.get("mismatch_count", 0)),
+                "duplicate_count": int(rec.get("duplicate_invoice_count", 0)),
+                "missing_einvoice_count": int(rec.get("missing_einvoice_count", 0)),
+                "missing_eway_bill_count": int(rec.get("missing_eway_bill_count", 0)),
+            },
+            "compliance": {
+                "average_filing_delay": float(rec.get("average_filing_delay", 0.0)),
+                "late_filing_count": int(rec.get("late_filing_count", 0)),
+                "missing_gstr1_count": int(rec.get("missing_gstr1_count", 0)),
+                "missing_gstr3b_count": int(rec.get("missing_gstr3b_count", 0)),
+            }
+        }
+
         assessment = {
             "vendor_id": vendor_id,
             "prediction_period": period,
@@ -336,6 +352,7 @@ class ITCRiskEngine:
                 "exposure_ratio": itc_ratio
             },
             "evidence": evidence,
+            "evidence_summary": evidence_summary,
             "graph_context": graph_context,
             "recommendations": {
                 "review_priority": priority,
