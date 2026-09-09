@@ -2044,34 +2044,35 @@ button.active-tag {
   z-index: 2;
   max-width: 480px;
   width: 100%;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
+  background: rgba(8, 14, 28, 0.52);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 22px;
+  padding: 30px 28px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .login-badge-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 999px;
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid rgba(245, 158, 11, 0.3);
   color: #f59e0b;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  margin-bottom: 16px;
-  backdrop-filter: blur(8px);
+  margin-bottom: 14px;
 }
 
 .login-logo {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: #f59e0b;
 }
 
@@ -2080,46 +2081,41 @@ button.active-tag {
 }
 
 .login-logo h1 {
-  font-size: 2rem;
+  font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #ffffff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .login-tagline {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   color: #cbd5e1;
-  line-height: 1.55;
-  margin-bottom: 24px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  line-height: 1.5;
+  margin-bottom: 20px;
 }
 
 .login-stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .login-stat-card {
-  padding: 12px 14px;
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .login-stat-card .stat-val {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #f8fafc;
   font-feature-settings: "tnum";
@@ -2136,26 +2132,24 @@ button.active-tag {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .login-feature {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   transition: all 0.25s ease;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .login-feature:hover {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(255, 255, 255, 0.06);
   border-color: rgba(245, 158, 11, 0.3);
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 .login-feature-icon {
@@ -2167,16 +2161,16 @@ button.active-tag {
 }
 
 .login-feature h4 {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #f1f5f9;
   margin-bottom: 2px;
 }
 
 .login-feature p {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: #cbd5e1;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .login-footer-meta {
@@ -2184,7 +2178,7 @@ button.active-tag {
   flex-direction: column;
   gap: 6px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .system-status-pill {
@@ -2211,7 +2205,7 @@ button.active-tag {
   color: #94a3b8;
 }
 
-/* Right Panel - Frameless login form */
+/* Right Panel - Semi-glass login card */
 .login-right {
   flex: 1;
   display: flex;
@@ -2227,11 +2221,13 @@ button.active-tag {
 .login-form-container {
   width: 100%;
   max-width: 440px;
-  padding: 24px 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
+  padding: 32px 30px;
+  background: rgba(8, 14, 28, 0.52);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 22px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Tab Segmented Control */
