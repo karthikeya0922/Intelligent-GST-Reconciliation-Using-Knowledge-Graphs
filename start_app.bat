@@ -9,7 +9,7 @@ if exist "C:\neo4j\neo4j-community-5.26.0\bin\neo4j.bat" (
     echo [1/3] Starting Neo4j Knowledge Graph...
     start "Neo4j Server" cmd /c "set JAVA_HOME=C:\neo4j\jdk-21.0.5+11&& C:\neo4j\neo4j-community-5.26.0\bin\neo4j.bat console"
 ) else (
-    echo [1/3] Standalone Neo4j not found at C:\neo4j (optional). Use 'docker compose up -d' if graph DB is needed.
+    echo [1/3] Standalone Neo4j not found at C:\neo4j - optional. Use 'docker compose up -d' if graph DB is needed.
 )
 
 echo [2/3] Starting FastAPI Backend API...

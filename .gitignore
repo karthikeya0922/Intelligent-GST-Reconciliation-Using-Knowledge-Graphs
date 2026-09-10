@@ -1,6 +1,7 @@
 # Large data directories and files
 data/raw/
 data/processed/*.parquet
+!data/processed/vendor_period_features.parquet
 data/processed/*.csv
 !data/sample/
 !data/reports/

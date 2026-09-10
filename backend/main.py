@@ -239,11 +239,14 @@ def seed_gst_ecosystem():
 
 
 # Run seed on startup
-seed_data()
-seed_gst_ecosystem()
+try:
+    client.admin.command('ping')
+    seed_data()
+    seed_gst_ecosystem()
+    auth_utils.migrate_plaintext_passwords(users_col)
+except Exception as exc:
+    print(f"[WARN] MongoDB not reachable at startup ({exc}). Continuing startup.")
 
-# Rehash any legacy plaintext credentials left by earlier versions.
-auth_utils.migrate_plaintext_passwords(users_col)
 
 # Load (or train, on first run) the vendor risk model.
 RISK_MODEL = None
@@ -1132,6 +1135,7 @@ def api_get_vendor_history(vendor_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 

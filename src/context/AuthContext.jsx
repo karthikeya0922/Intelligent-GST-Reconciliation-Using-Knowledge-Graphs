@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-const API = 'http://localhost:8000/api';
+const API = `${(import.meta.env?.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')}/api`;
 const SESSION_KEY = 'gst-current-user';
 // Offline-only credential store. Used when the API is unreachable so the demo
 // still runs; the API is always preferred, and it hashes with bcrypt server-side.

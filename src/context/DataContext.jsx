@@ -7,7 +7,7 @@ import {
 
 const DataContext = createContext();
 
-const API = 'http://localhost:8000/api';
+const API = `${(import.meta.env?.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')}/api`;
 
 // Offline-only risk heuristic. The authoritative score comes from the trained
 // RandomForest behind POST /api/predict-risk; this mirrors the backend's own
