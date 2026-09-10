@@ -1,0 +1,62 @@
+# Keeps the Render free-tier backend from spinning down.
+#
+# Render free web services sleep after ~15 minutes of inactivity and then take
+# ~50s to cold start. This pings the service often enough that it never idles
+# out, so the first real visitor does not eat that delay.
+#
+# It hits "/" deliberately: that route touches neither MongoDB nor the parquet
+# feature store, so it is the cheapest possible wake signal. Keeping the process
+# alive is what matters - the in-memory RiskDataStore caches survive with it,
+# which also avoids the ~12s warm-up on the first /risk/summary call.
+#
+# Budget note: Render free allows 750 instance-hours per month per workspace,
+# and a month is ~730 hours. Keeping ONE service awake 24/7 fits, with little to
+# spare. If a second free service is ever added, narrow the schedule below
+# (e.g. '*/10 2-18 * * *' for roughly 08:00-24:00 IST) or both may be suspended.
+
+name: Keep backend awake
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub delays scheduled runs under load, sometimes by
+    # several minutes, so this is deliberately well inside Render's 15-minute
+    # idle window rather than close to it.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+# If a previous ping is somehow still running, let it finish rather than
+# stacking runs on top of each other.
+concurrency:
+  group: keep-backend-awake
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping backend root
+        env:
+          BACKEND_URL: https://intelligent-gst-reconciliation-using-xrzr.onrender.com
+        run: |
+          # --max-time 120 tolerates a genuine cold start (~50s) without failing.
+          # --retry covers a container that is mid-restart.
+          code=$(curl -sS -o /dev/null \
+                      -w '%{http_code}' \
+                      --max-time 120 \
+                      --retry 2 \
+                      --retry-delay 20 \
+                      --retry-connrefused \
+                      "$BACKEND_URL/")
+
+          echo "GET $BACKEND_URL/ -> HTTP $code"
+
+          if [ "$code" != "200" ]; then
+            echo "::error::Backend did not return 200 (got $code)"
+            exit 1
+          fi
+
+          echo "Backend awake."
