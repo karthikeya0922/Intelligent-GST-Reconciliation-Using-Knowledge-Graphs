@@ -96,6 +96,19 @@ npm run build
 
 ---
 
+### 🌐 Deploying to the Cloud
+
+The platform runs on free tiers: **Vercel** (frontend), **Render** (backend), and
+**MongoDB Atlas** (database). Two environment variables are required —
+`VITE_API_URL` on Vercel and `MONGODB_URI` on Render — and Atlas must allowlist
+`0.0.0.0/0`, since Render's free tier has no fixed egress IP.
+
+See **[docs/deployment.md](docs/deployment.md)** for the full runbook: service
+configuration, Atlas setup, a verification sweep, free-tier cold-start and
+memory behaviour, and a troubleshooting table.
+
+---
+
 # 🎯 Research Question
 
 The primary research question is:
@@ -828,7 +841,8 @@ docs/
 ├── api_integration.md
 ├── investigation_workflow.md
 ├── production_hardening.md
-└── research_limitations.md
+├── research_limitations.md
+└── deployment.md
 ```
 
 ---
