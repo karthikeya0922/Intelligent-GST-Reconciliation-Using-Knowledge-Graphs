@@ -31,7 +31,7 @@ export default function Methodology() {
       <div className="grid grid-2 gap-4 mb-4">
         {/* Dataset Specification */}
         <div className="card">
-          <div className="card-header flex items-center gap-2">
+          <div className="card-header flex items-center gap-2 justify-start">
             <Database size={18} className="text-accent" />
             <h3>1. Controlled Hybrid Research Benchmark</h3>
           </div>
@@ -65,7 +65,7 @@ export default function Methodology() {
 
         {/* Predictive Model Architecture */}
         <div className="card">
-          <div className="card-header flex items-center gap-2">
+          <div className="card-header flex items-center gap-2 justify-start">
             <Cpu size={18} className="text-accent" />
             <h3>2. Primary Predictive ML Architecture</h3>
           </div>
@@ -100,7 +100,7 @@ export default function Methodology() {
 
       {/* Phase 2.1 Empirical Finding (Mandatory Spec) */}
       <div className="card mb-4" style={{ borderLeft: '4px solid var(--accent-primary)' }}>
-        <div className="card-header flex items-center gap-2">
+        <div className="card-header flex items-center gap-2 justify-start">
           <Scale size={18} className="text-accent" />
           <h3>3. Phase 2.1 Empirical Finding: Knowledge Graph Feature Role</h3>
         </div>
@@ -122,7 +122,7 @@ export default function Methodology() {
 
       {/* Risk Framework & Separation */}
       <div className="card mb-4">
-        <div className="card-header flex items-center gap-2">
+        <div className="card-header flex items-center gap-2 justify-start">
           <ShieldAlert size={18} className="text-accent" />
           <h3>4. Conceptual Separation: Risk Score vs. Exposure vs. Priority</h3>
         </div>
@@ -157,7 +157,7 @@ export default function Methodology() {
 
       {/* Research Limitations & Guardrails */}
       <div className="card mb-4">
-        <div className="card-header flex items-center gap-2">
+        <div className="card-header flex items-center gap-2 justify-start">
           <AlertTriangle size={18} className="text-warning" />
           <h3>5. Research Limitations & Governance Guardrails</h3>
         </div>
