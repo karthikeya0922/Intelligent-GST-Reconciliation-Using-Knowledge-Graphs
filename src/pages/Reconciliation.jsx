@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, Download, AlertCircle, CheckCircle, XCircle, FileWarning, Play, RefreshCw, Network } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import ScopeNote from '../components/ScopeNote';
 
 const statusIcons = {
     'Missing in GSTR-1': <XCircle size={14} />,
@@ -77,6 +78,8 @@ export default function Reconciliation() {
                 <h2>🔍 Reconciliation Engine</h2>
                 <p>Graph-traversal mismatch detection with root-cause classification — Deliverable 2</p>
             </div>
+
+            <ScopeNote />
 
             {/* Summary Cards */}
             <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '28px' }}>

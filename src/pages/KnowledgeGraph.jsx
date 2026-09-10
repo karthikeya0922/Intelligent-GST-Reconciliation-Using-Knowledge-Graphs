@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Search, X, Database, AlertTriangle, Crosshair, ExternalLink, Network } from 'lucide-react';
+import ScopeNote from '../components/ScopeNote';
 
 // Titanium Terminal (Dark)
 // Intelligent GST Reconciliation Color System (Dark Theme from Spec)
@@ -416,6 +417,8 @@ export default function KnowledgeGraph() {
                     </div>
                 </div>
             </div>
+
+            <ScopeNote />
 
             {/* Stats Bar */}
             <div className="kpi-grid mb-2" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
