@@ -69,7 +69,14 @@ app.add_middleware(
 # MongoDB Connection
 # ============================================================
 MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-client = MongoClient(MONGODB_URI)
+# Fail fast when Mongo is unreachable. The driver defaults to a 30s server
+# selection timeout, which pins a worker for the full 30s on every request
+# and queues the whole service on a single-instance host.
+client = MongoClient(
+    MONGODB_URI,
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=5000,
+)
 db = client["gst_reconcile_ai"]
 vendors_col = db["vendors"]
 invoices_col = db["invoices"]

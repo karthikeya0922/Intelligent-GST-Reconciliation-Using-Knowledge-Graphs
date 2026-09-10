@@ -174,6 +174,11 @@ function SystemStatus({ collapsed = false }) {
     );
   }
 
+  // These reflect what the backend reports, not what we hope is running - a
+  // hardcoded green dot hides exactly the outages this panel exists to surface.
+  const graphConnected = Boolean(graphStatus?.connected);
+  const modelSource = modelInfo?.available ? modelInfo.source : null;
+
   const rows = [
     {
       icon: <Database size={14} />,
@@ -183,15 +188,19 @@ function SystemStatus({ collapsed = false }) {
     },
     {
       icon: <Network size={14} />,
-      label: 'Graph Engine Active',
-      ok: true,
-      title: 'Time-safe Knowledge Graph investigation active',
+      label: graphConnected ? 'Graph Engine Active' : 'Graph Engine Offline',
+      ok: graphConnected,
+      title: graphConnected
+        ? `Neo4j reachable at ${graphStatus.uri || 'the configured endpoint'}`
+        : `Neo4j unavailable: ${graphStatus?.reason || 'not checked'}`,
     },
     {
       icon: <Activity size={14} />,
-      label: 'Tabular XGBoost Loaded',
-      ok: true,
-      title: 'Frozen Tabular XGBoost (19 features, Tree SHAP) active',
+      label: modelSource ? 'Risk Model Active' : 'Risk Model Unavailable',
+      ok: Boolean(modelSource),
+      title: modelSource
+        ? `Vendor risk scoring: ${modelSource}`
+        : 'Backend reported no trained model; heuristic fallback in use',
     },
   ];
 
