@@ -30,6 +30,19 @@ The system is designed as a **risk-indicator and decision-support platform**, no
 
 ---
 
+## 🌐 Live Demo
+
+**https://gstreconcile.tech**
+
+Sign in with the seeded demo account `admin@gstreconcile.ai` / `admin123`.
+
+The hosted demo runs the frontend on Vercel, the API on Render (free tier) and MongoDB on Atlas. Two things to know before you judge it:
+
+* **First load after idle can take ~50 seconds.** The free-tier backend spins down after 15 minutes of inactivity. A keep-alive workflow pings it every 10 minutes, but a cold start is still possible.
+* **The Knowledge Graph engine runs in fallback mode on the hosted demo.** Neo4j is not deployed there, so reconciliation reads pre-computed mismatch labels from MongoDB rather than traversing the graph. The API reports which mode it is in — `/api/reconcile` returns `"engine": "neo4j-graph-traversal"` or `"engine": "mongodb-fallback"`, and the sidebar shows **Graph Engine Online / Offline** accordingly. To see graph traversal actually run, use the local setup below with Docker.
+
+---
+
 ## ⚡ Quickstart: Running the Project After Cloning
 
 Anyone cloning this repository can run the entire platform with **100% full feature parity** (all ML models, SHAP explanations, 8-step investigation workspace, reconciliation engine, and dashboard) in minutes.
@@ -52,7 +65,18 @@ Start MongoDB and Neo4j using Docker Compose:
 ```bash
 docker compose up -d
 ```
-> **Note:** The backend degrades gracefully if Docker is not installed — the frontend automatically falls back to bundled research sample datasets.
+> **Without Docker the system still runs, in a reduced mode.** Each database degrades independently:
+>
+> | Service | If unavailable |
+> | --- | --- |
+> | **MongoDB** | The frontend falls back to bundled sample data (`src/data/mockData.js`) and the sidebar shows *API Offline (Fallback)*. |
+> | **Neo4j** | The graph engine goes offline. Reconciliation switches to `mongodb-fallback` (pre-computed labels instead of graph traversal), the Knowledge Graph page becomes a client-side projection, and the sidebar shows *Graph Engine Offline*. |
+>
+> The Knowledge Graph engine — multi-hop ITC validation, structural mismatch detection — **only runs when Neo4j is reachable at `bolt://localhost:7687`**. After the containers are up, populate the graph once with:
+> ```bash
+> curl -X POST http://localhost:8000/api/graph/sync
+> ```
+> Then `GET /api/graph/status` should return `"connected": true` and `/api/reconcile` should report `"engine": "neo4j-graph-traversal"`.
 
 ### Step 3: Start the Backend API
 In your terminal:
@@ -197,7 +221,7 @@ The current benchmark is a controlled **hybrid/synthetic research dataset**.
 | -------------------------- | ------------------: |
 | Vendors                    |               2,015 |
 | Invoices                   |             168,213 |
-| Simulated Periods          |           24 months |
+| Simulated Periods          |  23 months (2024-04 → 2026-02) |
 | Vendor-Period Observations |              46,345 |
 | Synthetic Invoices         |             168,163 |
 | Public Invoices            |                  50 |
